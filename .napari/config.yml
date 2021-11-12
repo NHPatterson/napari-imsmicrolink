@@ -1,0 +1,14 @@
+authors:
+  - name: Nathan Heath Patterson
+    orcid: 0000-0002-0064-1583
+  - name: Lukasz Migas
+    orcid: 0000-0002-1884-6405
+
+project_urls:
+    Project Site: https://napari-imsmicrolink.readthedocs.io/en/latest/
+    Report Issues: https://github.com/nhpatterson/napari-imsmicrolink/issues
+    Documentation: https://napari-imsmicrolink.readthedocs.io/en/latest/
+    Source Code: https://github.com/nhpatterson/napari-imsmicrolink/
+    Twitter: https://twitter.com/nheathpatterson/
+
+visibility: disabled
