@@ -46,6 +46,7 @@ coverage.xml
 *,cover
 .hypothesis/
 .napari_cache
+.github
 
 # Translations
 *.mo
@@ -78,3 +79,4 @@ target/
 
 # written by setuptools_scm
 */_version.py
+/.github/
