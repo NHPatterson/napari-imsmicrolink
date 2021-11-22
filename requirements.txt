@@ -8,3 +8,4 @@ qtpy
 aicsimageio[bioformats]
 bioformats_jar
 SimpleITK
+pandas

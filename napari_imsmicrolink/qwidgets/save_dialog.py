@@ -1,13 +1,22 @@
+from typing import NamedTuple, Optional
 from qtpy.QtWidgets import (
     QPushButton,
     QLabel,
     QLineEdit,
-    QGridLayout,
+    QFormLayout,
     QDialog,
     QErrorMessage,
     QFileDialog,
+    QComboBox,
 )
 from qtpy.QtCore import Qt
+
+
+class SaveData(NamedTuple):
+    project_name: str
+    output_dir: str
+    output_filetype: str
+
 
 class SavePopUp(QDialog):
     def __init__(self, parent=None):
@@ -16,9 +25,10 @@ class SavePopUp(QDialog):
         self.output_dir = None
         self.project_name = None
         self.completed = False
-        self.setMinimumSize(400,75)
-        self.grid = QGridLayout(self)
-        self.grid.setSpacing(10)
+        self.project_data: Optional[SaveData] = None
+
+        self.setMinimumSize(400, 75)
+        self.setLayout(QFormLayout())
 
         self.project_lbl = QLabel(self)
         self.project_lbl.setText("Set project (file) name: ")
@@ -28,20 +38,23 @@ class SavePopUp(QDialog):
         self.output_dir_lbl = QLabel(self)
         self.output_dir_lbl.setText("[not selected]")
 
+        self.output_ft_lbl = QLabel("Output format")
+
+        self.output_filetype = QComboBox()
+        self.output_filetype.addItem(".h5")
+        self.output_filetype.addItem(".csv")
+
+        self.cancel_btn = QPushButton("Cancel save")
         self.save_btn = QPushButton("Save data")
 
-        self.grid.addWidget(self.set_output_dir_btn, 0, 0)
-        self.grid.addWidget(self.output_dir_lbl, 0, 1)
-
-        self.grid.addWidget(self.project_lbl, 1, 0)
-        self.grid.addWidget(self.project_line, 1, 1)
-
-        self.grid.addWidget(self.save_btn, 2, 1)
-
-        self.setLayout(self.grid)
+        self.layout().addRow(self.set_output_dir_btn, self.output_dir_lbl)
+        self.layout().addRow(self.project_lbl, self.project_line)
+        self.layout().addRow(self.output_ft_lbl, self.output_filetype)
+        self.layout().addRow(self.cancel_btn, self.save_btn)
 
         self.set_output_dir_btn.clicked.connect(self.get_output_dir)
         self.save_btn.clicked.connect(self._save_config)
+        self.cancel_btn.clicked.connect(self._cancel_save)
 
     def get_output_dir(self):
         self.output_dir = QFileDialog.getExistingDirectory(
@@ -49,6 +62,13 @@ class SavePopUp(QDialog):
         )
         if self.output_dir is not None:
             self.output_dir_lbl.setText(self.output_dir)
+
+    def _gather_data(self) -> SaveData:
+        return SaveData(
+            output_dir=self.output_dir,
+            project_name=self.project_name,
+            output_filetype=self.output_filetype.currentText(),
+        )
 
     def _save_config(self):
         if self.output_dir is None:
@@ -62,7 +82,12 @@ class SavePopUp(QDialog):
             return
 
         self.project_name = self.project_line.text()
+        self.project_data = self._gather_data()
         self.completed = True
+        self.close()
+
+    def _cancel_save(self):
+        self.completed = False
         self.close()
 
     @staticmethod
