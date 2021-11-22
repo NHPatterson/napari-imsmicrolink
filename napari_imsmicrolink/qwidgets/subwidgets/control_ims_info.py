@@ -8,7 +8,7 @@ from qtpy.QtWidgets import (
     QFrame,
     QCheckBox,
     QPushButton,
-    QGroupBox
+    QGroupBox,
 )
 from qtpy.QtGui import QIntValidator, QFont
 from qtpy.QtCore import Qt
@@ -120,7 +120,7 @@ class CntrlIMS(QWidget):
 
         self.do_padding_btn = QPushButton("Pad IMS Canvas")
 
-        self.pad_grid.layout().addWidget(self.do_padding_btn,3,0)
+        self.pad_grid.layout().addWidget(self.do_padding_btn, 3, 0)
 
         self.layout().addWidget(self.pad_grid)
 
@@ -130,7 +130,3 @@ class CntrlIMS(QWidget):
         self.cur_pad_top.setText("0")
         self.cur_pad_bottom.setText("0")
         self.cur_pad_right.setText("0")
-
-
-
-

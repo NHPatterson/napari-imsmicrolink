@@ -1,8 +1,7 @@
-from typing import Tuple, List, Any
+from typing import Tuple, List, Union
 import numpy as np
 
-# xy_final_shape = np.asarray([10000,10000])
-# tile_size = 512
+
 def calc_pyramid_levels(
     xy_final_shape: np.ndarray, tile_size: int
 ) -> List[Tuple[int, int]]:
@@ -61,3 +60,29 @@ def get_pyramid_info(
     pyr_levels = calc_pyramid_levels(yx_size, tile_size)
     pyr_shapes = [(1, n_ch, 1, int(pl[0]), int(pl[1])) for pl in pyr_levels]
     return pyr_levels, pyr_shapes
+
+
+def centered_transform(
+    image_size,
+    image_spacing,
+    rotation_angle,
+) -> np.ndarray:
+    angle = np.deg2rad(rotation_angle)
+
+    sina = np.sin(angle)
+    cosa = np.cos(angle)
+
+    # build rot mat
+    rot_mat = np.eye(3)
+    rot_mat[0, 0] = cosa
+    rot_mat[1, 1] = cosa
+    rot_mat[1, 0] = sina
+    rot_mat[0, 1] = -sina
+
+    # recenter transform
+    center_point = np.multiply(image_size, image_spacing) / 2
+    center_point = np.append(center_point, 0)
+    translation = center_point - np.dot(rot_mat, center_point)
+    rot_mat[:2, 2] = translation[:2]
+
+    return rot_mat

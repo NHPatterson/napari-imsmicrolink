@@ -6,7 +6,8 @@ from qtpy.QtWidgets import (
     QTableWidgetItem,
     QHBoxLayout,
     QFormLayout,
-    QLabel
+    QLabel,
+    QComboBox,
 )
 
 
@@ -91,13 +92,22 @@ class CntrlTransform(QWidget):
         self.run_transform = QPushButton("Visualize transformation")
         self.reset_transform = QPushButton("Reset transformation")
 
-        self.run_transform.setStyleSheet("QPushButton:disabled{background-color:rgb(130, 82, 82);}")
+        self.run_transform.setStyleSheet(
+            "QPushButton:disabled{background-color:rgb(130, 82, 82);}"
+        )
         self.run_transform.setMaximumWidth(140)
 
         self.error_label = QLabel("Transformation error (μm):")
         self.tform_error = QLabel("")
 
+        self.target_mod_label = QLabel("Target modality:")
+        self.target_mode_combo = QComboBox()
+        self.target_mode_combo.addItem("IMS")
+        self.target_mode_combo.addItem("Microscopy")
+
         self.error_area.layout().addRow(self.error_label, self.tform_error)
+        self.error_area.layout().addRow(self.target_mod_label, self.target_mode_combo)
+
         self.sub_area.layout().addWidget(self.run_transform)
         self.sub_area.layout().addWidget(self.reset_transform)
 

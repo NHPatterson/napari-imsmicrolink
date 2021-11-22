@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 import pandas as pd
 import cv2
 from lxml import etree
+from napari_imsmicrolink.utils.points import apply_rotmat_points
 
 
 class PixelMapIMS:
@@ -464,3 +465,71 @@ class PixelMapIMS:
                 "y_padded": self.y_coords_pad,
             }
         )
+
+    def rotate_coordinates(
+        self, rotation_angle: int, fiducial_pts: Optional[np.ndarray] = None
+    ) -> Optional[np.ndarray]:
+
+        # translate center of mass to be near origin
+        mean_x = np.max(self.x_coords_min) / 2
+        mean_y = np.max(self.y_coords_min) / 2
+        center_point = [mean_x, mean_y]
+
+        # rotate around origin
+        new_padding = dict()
+        if rotation_angle in [90, -270]:
+            rotmat = np.asarray([[0, 1], [-1, 0]])
+            new_padding.update(
+                {
+                    "x_left": self._padding["y_top"],
+                    "x_right": self._padding["y_bottom"],
+                    "y_top": self._padding["x_right"],
+                    "y_bottom": self._padding["x_left"],
+                }
+            )
+            recenter_point = [mean_x, mean_y]
+
+        elif rotation_angle in [-90, 270]:
+            rotmat = np.asarray([[0, -1], [1, 0]])
+            new_padding.update(
+                {
+                    "x_left": self._padding["y_bottom"],
+                    "x_right": self._padding["y_top"],
+                    "y_top": self._padding["x_left"],
+                    "y_bottom": self._padding["x_right"],
+                }
+            )
+            recenter_point = [mean_x, mean_y]
+
+        elif rotation_angle in [-180, 180]:
+            rotmat = np.asarray([[-1, 0], [0, -1]])
+            new_padding.update(
+                {
+                    "x_left": self._padding["x_right"],
+                    "x_right": self._padding["x_left"],
+                    "y_top": self._padding["y_bottom"],
+                    "y_bottom": self._padding["y_top"],
+                }
+            )
+            # recenter_point = [mean_y, mean_x]
+            recenter_point = [mean_x, mean_y]
+
+        point_mat = np.column_stack([self.x_coords_min, self.y_coords_min])
+
+        rotcoords = apply_rotmat_points(rotmat, point_mat, center_point, recenter_point)
+        rotcoords = np.round(rotcoords).astype(np.uint32)
+
+        self.x_coords_min = rotcoords[:, 0]
+        self.y_coords_min = rotcoords[:, 1]
+        self._pixelmap_minimized = self._make_pixel_map_at_ims(
+            map_type="minimized", randomize=True
+        )
+        self.reset_padding()
+        self.padding = new_padding
+
+        if fiducial_pts is not None:
+            return apply_rotmat_points(
+                rotmat, fiducial_pts, center_point, recenter_point
+            )
+        else:
+            return

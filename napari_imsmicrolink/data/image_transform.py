@@ -93,10 +93,7 @@ class ImageTransform:
 
         return full_matrix
 
-    def _get_np_matrices(
-        self,
-        n_dim:int = 3
-    ):
+    def _get_np_matrices(self, n_dim: int = 3):
 
         self.affine_np_mat_yx_um = self.convert_sitk_to_np_matrix(
             self.affine_transform,
@@ -158,9 +155,25 @@ class ImageTransform:
 
     def _compute_pt_euclidean_error(self):
         tformed_pts = []
-        for pt in self.target_pts[:,[1,0]]:
+        for pt in self.target_pts[:, [1, 0]]:
             tformed_pt = self.affine_transform.TransformPoint(pt)
             tformed_pts.append(tformed_pt[::-1])
         tformed_pts = np.asarray(tformed_pts)
 
-        self.point_reg_error = float(np.sqrt(np.sum((self.source_pts - tformed_pts)**2)))
+        self.point_reg_error = float(
+            np.sqrt(np.sum((self.source_pts - tformed_pts) ** 2))
+        )
+
+    @staticmethod
+    def apply_transform_to_pts(
+        point_set: np.ndarray, transform: sitk.AffineTransform, xy_order: str = "xy"
+    ) -> np.ndarray:
+        if xy_order == "yx":
+            point_set = point_set[:, [1, 0]]
+
+        transformed_pts = []
+        for pt in point_set:
+            transformed_pts.append(transform.TransformPoint(pt))
+        transformed_pts = np.asarray(transformed_pts)
+
+        return transformed_pts
