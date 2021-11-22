@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 from copy import deepcopy
 from pathlib import Path
 import json
@@ -11,6 +11,7 @@ import napari
 from napari.qt.threading import thread_worker
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QErrorMessage
 from qtpy.QtCore import QTimer
+
 from napari_imsmicrolink.qwidgets.data_ctl_group import DataControl
 from napari_imsmicrolink.qwidgets.ims_ctl_group import IMSControl
 from napari_imsmicrolink.qwidgets.tform_ctl_group import TformControl
@@ -22,9 +23,11 @@ from napari_imsmicrolink.data.microscopy_writer import OmeTiffWriter
 from napari_imsmicrolink.data.image_transform import ImageTransform
 from napari_imsmicrolink.utils.file import open_file_dialog
 from napari_imsmicrolink.utils.color import COLOR_HEXES
+from napari_imsmicrolink.utils.image import centered_transform
+from napari_imsmicrolink.utils.coords import pmap_coords_to_h5
 
 
-class IMSMicroLinkMain(QWidget):
+class IMSMicroLink(QWidget):
     def __init__(self, napari_viewer: napari.Viewer):
         """
         Main class of the IMS MicroLink to perform registration.
@@ -60,6 +63,10 @@ class IMSMicroLinkMain(QWidget):
         self.last_transform: np.ndarray = np.eye(3)
         self.output_size: Optional[Tuple[int, int]] = None
 
+        # private attrs
+        self._micro_rot = 0
+        self._ims_rot = 0
+
         # controller widgets
         self.data: DataControl = DataControl(self)
         self.ims_c: IMSControl = IMSControl(self)
@@ -88,6 +95,30 @@ class IMSMicroLinkMain(QWidget):
 
         # transform control
         self.tform_c.tform_ctl.run_transform.clicked.connect(self.run_transformation)
+        self.tform_c.rot_ctl.rot_mi_90cw.clicked.connect(
+            lambda: self._rotate_modality("microscopy", -90)
+        )
+        self.tform_c.rot_ctl.rot_mi_90ccw.clicked.connect(
+            lambda: self._rotate_modality("microscopy", 90)
+        )
+        self.tform_c.rot_ctl.rot_mi_180cw.clicked.connect(
+            lambda: self._rotate_modality("microscopy", 180)
+        )
+        self.tform_c.rot_ctl.rot_mi_180ccw.clicked.connect(
+            lambda: self._rotate_modality("microscopy", 180)
+        )
+        self.tform_c.rot_ctl.rot_ims_90cw.clicked.connect(
+            lambda: self._rotate_modality("ims", -90)
+        )
+        self.tform_c.rot_ctl.rot_ims_90ccw.clicked.connect(
+            lambda: self._rotate_modality("ims", 90)
+        )
+        self.tform_c.rot_ctl.rot_ims_180cw.clicked.connect(
+            lambda: self._rotate_modality("ims", 180)
+        )
+        self.tform_c.rot_ctl.rot_ims_180ccw.clicked.connect(
+            lambda: self._rotate_modality("ims", 180)
+        )
 
         # save control
         self.save_c.save_ctl.reset_data.clicked.connect(self.reset_data)
@@ -365,7 +396,6 @@ class IMSMicroLinkMain(QWidget):
                 np.multiply(canvas_size_microns, (1 / micro_res))
             ).astype(int)
 
-            print("micro-canvas-size:", _output_size)
             _output_size = tuple([int(x) for x in _output_size])
 
             self.image_transformer.output_size = _output_size
@@ -501,14 +531,23 @@ class IMSMicroLinkMain(QWidget):
             is False
             and self.image_transformer.inverse_affine_np_mat_yx_um is not None
         ):
-            for im in self.micro_image_names:
-                self.viewer.layers[
-                    im
-                ].affine = self.image_transformer.inverse_affine_np_mat_yx_um
-
-            self.last_transform = deepcopy(
-                self.image_transformer.inverse_affine_np_mat_yx_um
+            target_tform_modality = (
+                self.tform_c.tform_ctl.target_mode_combo.currentText()
             )
+            if target_tform_modality == "Microscopy":
+                self.viewer.layers[
+                    "IMS Pixel Map"
+                ].affine = self.image_transformer.affine_np_mat_yx_um
+
+            elif target_tform_modality == "IMS":
+                for im in self.micro_image_names:
+                    self.viewer.layers[
+                        im
+                    ].affine = self.image_transformer.inverse_affine_np_mat_yx_um
+
+                self.last_transform = deepcopy(
+                    self.image_transformer.inverse_affine_np_mat_yx_um
+                )
 
     def reset_data(self) -> None:
         while len(self.viewer.layers) > 0:
@@ -533,15 +572,17 @@ class IMSMicroLinkMain(QWidget):
 
         return
 
-    def _get_save_info(self) -> None:
+    def _get_save_info(self):
         d = SavePopUp.show_dialog(
             self.viewer.window.qt_viewer, parent=self.viewer.window._qt_window
         )
+
         if d.completed:
-            project_name, output_dir = d.project_name, d.output_dir
+            project_data = d.project_data
         else:
-            project_name, output_dir = None, None
-        return project_name, output_dir
+            project_data = None
+
+        return project_data
 
     def _generate_pmap_coords_and_meta(self, project_name: str) -> None:
 
@@ -598,37 +639,96 @@ class IMSMicroLinkMain(QWidget):
 
         return project_metadata, pmap_coord_data
 
-    @thread_worker
-    def _write_data(self, project_name: str, output_dir: str) -> None:
-        ometiff_writer = OmeTiffWriter(
-            self.microscopy_image,
-            project_name,
-            self.image_transformer.affine_transform,
-            self.image_transformer.output_size,
-            self.image_transformer.output_spacing,
-            tile_size=512,
-            output_dir=output_dir,
+    def _transform_ims_coords_to_microscopy(self) -> np.ndarray:
+        xy_coords = np.column_stack(
+            [self.ims_pixel_map.x_coords_pad, self.ims_pixel_map.y_coords_pad]
         )
-        ometiff_writer.write_image()
+
+        # need to scale points to physical space to transform
+        ims_res = float(self.data.ims_d.res_info_input.text())
+        micro_res = float(self.data.micro_d.res_info_input.text())
+
+        xy_coords_scaled = xy_coords * ims_res
+
+        transformed_coords_micro = self.image_transformer.apply_transform_to_pts(
+            xy_coords_scaled,
+            self.image_transformer.affine_transform,
+            xy_order="xy",
+        )
+
+        # get points back in IMS pixel space
+        transformed_coords_ims = transformed_coords_micro / ims_res
+
+        # get points back in microscopy pixel space
+        transformed_coords_micro_px = transformed_coords_micro / micro_res
+
+        return (
+            transformed_coords_ims,
+            transformed_coords_micro,
+            transformed_coords_micro_px,
+        )
+
+    @thread_worker
+    def _write_data(
+        self, project_name: str, output_dir: str, output_filetype: str
+    ) -> None:
 
         project_metadata, pmap_coord_data = self._generate_pmap_coords_and_meta(
             project_name
         )
 
-        coords_out_fp = Path(output_dir) / f"{project_name}-IMSML-coords.csv"
+        target_tform_modality = self.tform_c.tform_ctl.target_mode_combo.currentText()
+        if target_tform_modality == "Microscopy":
+            (
+                transformed_coords_ims,
+                transformed_coords_micro,
+                transformed_coords_micro_px,
+            ) = self._transform_ims_coords_to_microscopy()
+
+            pmap_coord_data["x_micro_ims_px"] = transformed_coords_ims[:, 0]
+            pmap_coord_data["y_micro_ims_px"] = transformed_coords_ims[:, 1]
+            pmap_coord_data["x_micro_physical"] = transformed_coords_micro[:, 0]
+            pmap_coord_data["y_micro_physical"] = transformed_coords_micro[:, 1]
+            pmap_coord_data["x_micro_px"] = transformed_coords_micro_px[:, 0]
+            pmap_coord_data["y_micro_px"] = transformed_coords_micro_px[:, 1]
+
+        elif target_tform_modality == "IMS":
+            ometiff_writer = OmeTiffWriter(
+                self.microscopy_image,
+                project_name,
+                self.image_transformer.affine_transform,
+                self.image_transformer.output_size,
+                self.image_transformer.output_spacing,
+                tile_size=512,
+                output_dir=output_dir,
+            )
+            ometiff_writer.write_image()
+
         pmeta_out_fp = Path(output_dir) / f"{project_name}-IMSML-meta.json"
 
         with open(pmeta_out_fp, "w") as json_out:
             json.dump(project_metadata, json_out, indent=1)
 
-        pmap_coord_data.to_csv(coords_out_fp, mode="w", index=False)
+        if output_filetype == ".h5":
+            coords_out_fp = Path(output_dir) / f"{project_name}-IMSML-coords.h5"
+            # pmap_coord_data.to_hdf(
+            #     coords_out_fp, key="imsml-coords", complevel=1, index=False
+            # )
+            pmap_coords_to_h5(pmap_coord_data, coords_out_fp)
+        elif output_filetype == ".csv":
+            coords_out_fp = Path(output_dir) / f"{project_name}-IMSML-coords.csv"
+            pmap_coord_data.to_csv(coords_out_fp, mode="w", index=False)
 
     def save_data(self) -> None:
 
-        project_name, output_dir = self._get_save_info()
+        project_data = self._get_save_info()
 
-        if project_name:
-            save_worker = self._write_data(project_name, output_dir)
+        if project_data:
+            save_worker = self._write_data(
+                project_data.project_name,
+                project_data.output_dir,
+                project_data.output_filetype,
+            )
             save_worker.start()
             return
         else:
@@ -666,8 +766,43 @@ class IMSMicroLinkMain(QWidget):
             else:
                 return None
 
+    def _rotate_modality(self, modality: str, angle: Union[int, float]):
+        if modality == "microscopy" and self.microscopy_image:
+            image_size = self.viewer.layers[self.micro_image_names[0]].data.shape
+            image_spacing = self.viewer.layers[self.micro_image_names[0]].scale
+            cum_angle = angle + self._micro_rot
+            if cum_angle > 360:
+                cum_angle -= 360
+            microscopy_transform = centered_transform(
+                image_size, image_spacing, cum_angle
+            )
+            for micro_im in self.micro_image_names:
+                self.viewer.layers[micro_im].affine = microscopy_transform
+            self._micro_rot += angle
+
+        if modality == "ims" and self.ims_pixel_map:
+            cum_angle = angle + self._ims_rot
+            if cum_angle > 360:
+                cum_angle -= 360
+            if len(self.viewer.layers["IMS Fiducials"].data) > 0:
+                updated_fiducials = self.ims_pixel_map.rotate_coordinates(
+                    rotation_angle=cum_angle,
+                    fiducial_pts=self.viewer.layers["IMS Fiducials"].data[:, [1, 0]],
+                )
+                self.viewer.layers["IMS Fiducials"].data = updated_fiducials[:, [1, 0]]
+            else:
+                self.ims_pixel_map.rotate_coordinates(
+                    rotation_angle=cum_angle,
+                )
+
+            self.viewer.layers[
+                "IMS Pixel Map"
+            ].data = self.ims_pixel_map.pixelmap_padded
+
+        return
+
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
     # you can return either a single widget, or a sequence of widgets
-    return IMSMicroLinkMain
+    return IMSMicroLink
