@@ -12,15 +12,20 @@ from napari.qt.threading import thread_worker
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QErrorMessage
 from qtpy.QtCore import QTimer
 
-from napari_imsmicrolink.qwidgets.data_ctl_group import DataControl
-from napari_imsmicrolink.qwidgets.ims_ctl_group import IMSControl
-from napari_imsmicrolink.qwidgets.tform_ctl_group import TformControl
-from napari_imsmicrolink.qwidgets.save_ctl_group import SaveControl
-from napari_imsmicrolink.qwidgets.save_dialog import SavePopUp
-from napari_imsmicrolink.data.ims_pixel_map import PixelMapIMS
-from napari_imsmicrolink.data.microscopy_reader import MicroRegImage
-from napari_imsmicrolink.data.microscopy_writer import OmeTiffWriter
-from napari_imsmicrolink.data.image_transform import ImageTransform
+from napari_imsmicrolink.qwidgets import (
+    DataControl,
+    IMSControl,
+    TformControl,
+    SaveControl,
+    SavePopUp,
+)
+from napari_imsmicrolink.data import (
+    PixelMapIMS,
+    MicroRegImage,
+    OmeTiffWriter,
+    ImageTransform,
+)
+
 from napari_imsmicrolink.utils.file import open_file_dialog
 from napari_imsmicrolink.utils.color import COLOR_HEXES
 from napari_imsmicrolink.utils.image import centered_transform
