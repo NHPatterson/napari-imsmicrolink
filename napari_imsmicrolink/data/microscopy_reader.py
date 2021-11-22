@@ -1,6 +1,8 @@
 import os
 
-os.environ["BIOFORMATS_MEMORY"] = "8g" # need to source before bioformats is initialized
+os.environ[
+    "BIOFORMATS_MEMORY"
+] = "8g"  # need to source before bioformats is initialized
 from typing import Union, List, Dict
 from pathlib import Path
 import numpy as np

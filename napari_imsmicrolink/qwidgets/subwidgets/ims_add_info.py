@@ -38,7 +38,6 @@ class AddIMSWidget(QWidget):
         # self.file_info_input.setMaximumWidth(80)
         self.file_info_input.setWordWrap(True)
 
-
         self.info_grid.layout().addRow(self.file_info_label, self.file_info_input)
         self.info_grid.layout().addRow(self.res_info_label, self.res_info_input)
 

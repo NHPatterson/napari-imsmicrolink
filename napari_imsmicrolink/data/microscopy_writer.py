@@ -63,8 +63,12 @@ class OmeTiffWriter:
             self.microscopy_image.ome_metadata.images[self.image_series_idx]
         ]
 
-        self.microscopy_image.ome_metadata.images[0].pixels.size_x = self.output_size[0] # type:ignore
-        self.microscopy_image.ome_metadata.images[0].pixels.size_y = self.output_size[1] # type:ignore
+        self.microscopy_image.ome_metadata.images[0].pixels.size_x = self.output_size[
+            0
+        ]  # type:ignore
+        self.microscopy_image.ome_metadata.images[0].pixels.size_y = self.output_size[
+            1
+        ]  # type:ignore
 
         omexml = self.microscopy_image.ome_metadata.to_xml()
 

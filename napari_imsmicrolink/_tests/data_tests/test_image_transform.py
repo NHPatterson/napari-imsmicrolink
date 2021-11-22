@@ -8,7 +8,7 @@ def test_ImageTransform_add_points():
     test_pts = np.array([[50.75, 100.0], [20.0, 10.0], [10.0, 50.0], [60.0, 20.0]])
 
     itfm = ImageTransform()
-    itfm.output_spacing = (1,1)
+    itfm.output_spacing = (1, 1)
     itfm.add_points(test_pts, round=True, src_or_tgt="source", scaling=100)
 
     assert itfm.source_pts is not None
@@ -24,19 +24,23 @@ def test_ImageTransform_add_points():
 
     assert itfm.target_pts is not None
 
-def test_ImageTransform_compute_transform():
-    source_pts = np.array([[356.93356879, 6713.16214535],
-                           [6285.96351516, 11137.0624842],
-                           [15154.40947051, 7596.13949593],
-                           [6905.28155271, 936.74985065]])
 
-    target_pts = np.array([[500., 6250.],
-                           [6400., 10700.],
-                           [15300., 7200.],
-                           [7100., 500.]])
+def test_ImageTransform_compute_transform():
+    source_pts = np.array(
+        [
+            [356.93356879, 6713.16214535],
+            [6285.96351516, 11137.0624842],
+            [15154.40947051, 7596.13949593],
+            [6905.28155271, 936.74985065],
+        ]
+    )
+
+    target_pts = np.array(
+        [[500.0, 6250.0], [6400.0, 10700.0], [15300.0, 7200.0], [7100.0, 500.0]]
+    )
 
     itfm = ImageTransform()
-    itfm.output_spacing = (0.92,0.92)
+    itfm.output_spacing = (0.92, 0.92)
     itfm.add_points(source_pts, round=False, src_or_tgt="source", scaling=1)
     itfm.add_points(target_pts, round=True, src_or_tgt="target", scaling=1)
 
