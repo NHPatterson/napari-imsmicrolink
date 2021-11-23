@@ -70,7 +70,7 @@ class OmeTiffWriter:
             1
         ]  # type:ignore
 
-        omexml = self.microscopy_image.ome_metadata.to_xml()
+        omexml = self.microscopy_image.ome_metadata.to_xml().encode('utf-8')
 
         subifds = n_pyr_levels - 1
 
@@ -91,43 +91,41 @@ class OmeTiffWriter:
                 image = self._transform_plane(
                     image, self.image_transform, self.output_size, self.output_spacing
                 )
-                print(self.output_size, self.output_spacing)
-                print(image)
 
                 # if self.is_rgb:
                 #     rgb_im_data.append(image)
                 # else:
-            if isinstance(image, sitk.Image):
-                image = sitk.GetArrayFromImage(image)
+                if isinstance(image, sitk.Image):
+                    image = sitk.GetArrayFromImage(image)
 
-            options = dict(
-                tile=(self.tile_size, self.tile_size),
-                compression=compression,
-                photometric="rgb" if self.is_rgb else "minisblack",
-                metadata=None,
-            )
-            # write OME-XML to the ImageDescription tag of the first page
-            description = omexml if channel_idx == 0 else None
-            # write channel data
-            print(f" writing channel {channel_idx} - shape: {image.shape}")
-            tif.write(
-                image,
-                subifds=subifds,
-                description=description,
-                **options,
-            )
-
-            for pyr_idx in range(1, n_pyr_levels):
-                resize_shape = (
-                    pyr_levels[pyr_idx][0],
-                    pyr_levels[pyr_idx][1],
+                options = dict(
+                    tile=(self.tile_size, self.tile_size),
+                    compression=compression,
+                    photometric="rgb" if self.is_rgb else "minisblack",
+                    metadata=None,
                 )
-                image = cv2.resize(
+                # write OME-XML to the ImageDescription tag of the first page
+                description = omexml if channel_idx == 0 else None
+                # write channel data
+                print(f" writing channel {channel_idx} - shape: {image.shape}")
+                tif.write(
                     image,
-                    resize_shape,
-                    cv2.INTER_LINEAR,
+                    subifds=subifds,
+                    description=description,
+                    **options,
                 )
-                tif.write(image, **options, subfiletype=1)
+
+                for pyr_idx in range(1, n_pyr_levels):
+                    resize_shape = (
+                        pyr_levels[pyr_idx][0],
+                        pyr_levels[pyr_idx][1],
+                    )
+                    image = cv2.resize(
+                        image,
+                        resize_shape,
+                        cv2.INTER_LINEAR,
+                    )
+                    tif.write(image, **options, subfiletype=1)
             #
             # if self.reg_image.is_rgb:
             #     rgb_im_data = sitk.Compose(rgb_im_data)
