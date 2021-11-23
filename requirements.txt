@@ -9,3 +9,6 @@ aicsimageio[bioformats]
 bioformats_jar
 SimpleITK
 pandas
+h5py
+opencv-python
+
