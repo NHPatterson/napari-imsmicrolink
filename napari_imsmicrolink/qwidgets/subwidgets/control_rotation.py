@@ -25,14 +25,10 @@ class CntrlRotation(QWidget):
         self.rot_mi_180cw = QPushButton("180° CW >>")
 
         self.rot_ims_90ccw = QPushButton("<< 90° CCW")
-        self.rot_ims_180ccw = QPushButton("<< 180° CCW")
         self.rot_ims_90cw = QPushButton("90° CW >>")
-        self.rot_ims_180cw = QPushButton("180° CW >>")
 
         self.ims_rot_box.layout().addWidget(self.rot_ims_90ccw, 0, 0)
-        self.ims_rot_box.layout().addWidget(self.rot_ims_180ccw, 1, 0)
         self.ims_rot_box.layout().addWidget(self.rot_ims_90cw, 0, 1)
-        self.ims_rot_box.layout().addWidget(self.rot_ims_180cw, 1, 1)
 
         self.micro_rot_box.layout().addWidget(self.rot_mi_90ccw, 0, 0)
         self.micro_rot_box.layout().addWidget(self.rot_mi_180ccw, 1, 0)
