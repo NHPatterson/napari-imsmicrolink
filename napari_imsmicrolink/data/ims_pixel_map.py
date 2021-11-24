@@ -526,6 +526,7 @@ class PixelMapIMS:
         )
         self.reset_padding()
         self.padding = new_padding
+        self._shape_map_minimized = self._make_shape_map(map_type="minimized")
 
         if fiducial_pts is not None:
             return apply_rotmat_points(
