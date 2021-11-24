@@ -118,12 +118,12 @@ class IMSMicroLink(QWidget):
         self.tform_c.rot_ctl.rot_ims_90ccw.clicked.connect(
             lambda: self._rotate_modality("ims", 90)
         )
-        self.tform_c.rot_ctl.rot_ims_180cw.clicked.connect(
-            lambda: self._rotate_modality("ims", 180)
-        )
-        self.tform_c.rot_ctl.rot_ims_180ccw.clicked.connect(
-            lambda: self._rotate_modality("ims", 180)
-        )
+        # self.tform_c.rot_ctl.rot_ims_180cw.clicked.connect(
+        #     lambda: self._rotate_modality("ims", 180)
+        # )
+        # self.tform_c.rot_ctl.rot_ims_180ccw.clicked.connect(
+        #     lambda: self._rotate_modality("ims", 180)
+        # )
 
         # save control
         self.save_c.save_ctl.reset_data.clicked.connect(self.reset_data)
@@ -244,8 +244,12 @@ class IMSMicroLink(QWidget):
 
         self.viewer.reset_view()
 
-    def _add_ims_rois(self) -> None:
-        shapes = self.ims_pixel_map._shape_map_minimized
+    def _generate_ims_rois(self, map_type="minimized"):
+        if map_type == "minimized":
+            shapes = self.ims_pixel_map._shape_map_minimized
+        else:
+            shapes = self.ims_pixel_map._make_shape_map(map_type=map_type)
+
         shape_names = [shape[0] for shape in shapes]
         shape_data = [shape[1] for shape in shapes]
         shape_props = {"name": shape_names}
@@ -255,9 +259,14 @@ class IMSMicroLink(QWidget):
             "anchor": "center",
             "size": 12,
         }
+        return shape_data, shape_names, shape_props, shape_text
+
+    def _add_ims_rois(self) -> None:
+
+        shape_data, shape_names, shape_props, shape_text = self._generate_ims_rois()
 
         face_colors = []
-        for i in range(len(shapes)):
+        for i in range(len(shape_names)):
             if i > len(COLOR_HEXES):
                 idx = np.random.randint(0, len(COLOR_HEXES) - 1)
                 face_colors.append(COLOR_HEXES[idx])
@@ -454,6 +463,11 @@ class IMSMicroLink(QWidget):
                 str(self.ims_pixel_map.padding.get("y_bottom"))
             )
 
+    def _pad_shapes(self):
+        # update IMS ROIs
+        shape_data, *_ = self._generate_ims_rois(map_type="padded")
+        self.viewer.layers["IMS ROIs"].data = shape_data
+
     def pad_ims_canvas(self) -> None:
 
         x_left = (
@@ -495,20 +509,7 @@ class IMSMicroLink(QWidget):
 
         # update image
         self.viewer.layers["IMS Pixel Map"].data = self.ims_pixel_map.pixelmap_padded
-
-        # update IMS ROIs
-        updated_shapes = []
-        for idx, shape in enumerate(self.ims_pixel_map._shape_map_minimized):
-            _, shape_data = deepcopy(shape)
-            shape_data[:, 0] = shape_data[:, 0] + self.ims_pixel_map.padding.get(
-                "y_top"
-            )
-            shape_data[:, 1] = shape_data[:, 1] + self.ims_pixel_map.padding.get(
-                "x_left"
-            )
-            updated_shapes.append(shape_data.astype(np.float32))
-
-        self.viewer.layers["IMS ROIs"].data = updated_shapes
+        self._pad_shapes()
 
         # update fiducial pts
         updated_ims_fids = deepcopy(self.viewer.layers["IMS Fiducials"].data)
@@ -574,6 +575,11 @@ class IMSMicroLink(QWidget):
         # start with certain buttons disabled
         self.save_c.save_ctl.save_data.setEnabled(False)
         self.tform_c.tform_ctl.run_transform.setEnabled(False)
+
+        self.ims_c.ims_ctl.cur_pad_left.setText("0")
+        self.ims_c.ims_ctl.cur_pad_right.setText("0")
+        self.ims_c.ims_ctl.cur_pad_top.setText("0")
+        self.ims_c.ims_ctl.cur_pad_bottom.setText("0")
 
         return
 
@@ -786,24 +792,24 @@ class IMSMicroLink(QWidget):
             self._micro_rot += angle
 
         if modality == "ims" and self.ims_pixel_map:
-            cum_angle = angle + self._ims_rot
-            if cum_angle > 360:
-                cum_angle -= 360
+
             if len(self.viewer.layers["IMS Fiducials"].data) > 0:
                 updated_fiducials = self.ims_pixel_map.rotate_coordinates(
-                    rotation_angle=cum_angle,
+                    rotation_angle=angle,
                     fiducial_pts=self.viewer.layers["IMS Fiducials"].data[:, [1, 0]],
                 )
                 self.viewer.layers["IMS Fiducials"].data = updated_fiducials[:, [1, 0]]
             else:
                 self.ims_pixel_map.rotate_coordinates(
-                    rotation_angle=cum_angle,
+                    rotation_angle=angle,
                 )
 
             self.viewer.layers[
                 "IMS Pixel Map"
             ].data = self.ims_pixel_map.pixelmap_padded
-
+            shape_data, *_ = self._generate_ims_rois()
+            self._pad_shapes()
+            self._ims_rot += angle
         return
 
 

@@ -76,6 +76,9 @@ class PointTable(QTableWidget):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
+    def _reset_table(self):
+        self.setRowCount(0)
+
 
 class CntrlTransform(QWidget):
     def __init__(self):
@@ -116,5 +119,5 @@ class CntrlTransform(QWidget):
         self.layout().addWidget(self.error_area)
 
     def _reset(self):
-        self.pt_table = PointTable()
+        self.pt_table._reset_table()
         self.tform_error.setText("")
