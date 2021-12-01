@@ -89,6 +89,7 @@ class IMSMicroLink(QWidget):
         # button actions for widgets
         # data reading
         self.data.ims_d.add_ims_data.clicked.connect(self.read_ims_data)
+        self.data.ims_d.delete_btn.clicked.connect(self._delete_ims_roi)
         self.data.micro_d.add_micro_data.clicked.connect(self.read_micro_data)
 
         # ims canvas control
@@ -238,8 +239,8 @@ class IMSMicroLink(QWidget):
             colormap="viridis",
         )
 
-        self._add_ims_rois()
         self._add_ims_fiducials()
+        self._add_ims_rois()
         self._update_output_size()
 
         self.viewer.reset_view()
@@ -260,6 +261,10 @@ class IMSMicroLink(QWidget):
             "size": 12,
         }
         return shape_data, shape_names, shape_props, shape_text
+
+    def _add_shape_names_combo(self, shape_names) -> None:
+        for sname in shape_names:
+            self.data.ims_d.delete_box.addItem(str(sname))
 
     def _add_ims_rois(self) -> None:
 
@@ -285,6 +290,8 @@ class IMSMicroLink(QWidget):
             opacity=0.55,
             scale=(self.ims_pixel_map.ims_res, self.ims_pixel_map.ims_res),
         )
+
+        self._add_shape_names_combo(shape_names)
 
     def _add_micro_fiducials(self) -> None:
         if self.ims_pixel_map:
@@ -465,8 +472,12 @@ class IMSMicroLink(QWidget):
 
     def _pad_shapes(self):
         # update IMS ROIs
-        shape_data, *_ = self._generate_ims_rois(map_type="padded")
+        shape_data, shape_names, shape_props, _ = self._generate_ims_rois(
+            map_type="padded"
+        )
         self.viewer.layers["IMS ROIs"].data = shape_data
+        self.viewer.layers["IMS ROIs"].properties = shape_props
+        self.viewer.layers["IMS ROIs"].text.values = shape_names
 
     def pad_ims_canvas(self) -> None:
 
@@ -678,6 +689,30 @@ class IMSMicroLink(QWidget):
             transformed_coords_micro,
             transformed_coords_micro_px,
         )
+
+    def _remove_ims_roi_in_viewer(self, roi_name):
+        rm_idx = np.where(
+            self.viewer.layers["IMS ROIs"].properties["name"].astype(str) == roi_name
+        )[0]
+        for idx in rm_idx:
+            self.viewer.layers["IMS ROIs"].data.pop(int(idx))
+
+        for k in self.viewer.layers["IMS ROIs"].properties:
+            self.viewer.layers["IMS ROIs"].properties[k] = np.delete(
+                self.viewer.layers["IMS ROIs"].properties[k], rm_idx, axis=0
+            )
+
+        return
+
+    def _delete_ims_roi(self):
+        roi_name = self.data.ims_d.delete_box.currentText()
+        self.ims_pixel_map.delete_roi(roi_name, remove_padding=False)
+        self.viewer.layers["IMS Pixel Map"].data = self.ims_pixel_map.pixelmap_padded
+        shape_names = np.unique(self.ims_pixel_map.regions).astype(str)
+        self.data.ims_d.delete_box.clear()
+        self._add_shape_names_combo(shape_names)
+        # self._remove_ims_roi_in_viewer(roi_name)
+        self._pad_shapes()
 
     @thread_worker
     def _write_data(
