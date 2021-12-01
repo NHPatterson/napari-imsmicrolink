@@ -153,6 +153,19 @@ class IMSMicroLink(QWidget):
         """Wait until there are no changes for 0.5 second before making changes."""
         self.micro_res_timer.start(500)
 
+    def _update_ims_filepaths(self, file_paths: Union[str, List[str]]) -> None:
+        if isinstance(file_paths, list):
+            fp_names = [Path(fp).name for fp in file_paths]
+            fp_names = ",".join(fp_names)
+            fp_names_full = [Path(fp).as_posix() for fp in file_paths]
+            fp_names_full = "\n".join(fp_names_full)
+        else:
+            fp_names = Path(file_paths).name
+            fp_names_full = Path(file_paths).as_posix()
+
+        self.data.ims_d.file_info_input.setText(fp_names)
+        self.data.ims_d.file_info_input.setToolTip(fp_names_full)
+
     def read_ims_data(self) -> None:
         """
         Collect data path and import IMS data, generating IMS Pixel Map.
@@ -165,22 +178,15 @@ class IMSMicroLink(QWidget):
             file_types="All Files (*);;Tiff files (*.txt,*.tif);;sqlite files (*.sqlite);;imzML (*.imzML)",
         )
         if file_paths:
-            self.ims_pixel_map = PixelMapIMS(file_paths)
-            if len(self.data.ims_d.res_info_input.text()) == 0:
-                self.data.ims_d.res_info_input.setText("1")
+            if self.ims_pixel_map:
+                self.ims_pixel_map.add_pixel_data(file_paths)
+            else:
+                self.ims_pixel_map = PixelMapIMS(file_paths)
+                if len(self.data.ims_d.res_info_input.text()) == 0:
+                    self.data.ims_d.res_info_input.setText("1")
 
             self._add_ims_data()
-            if isinstance(file_paths, list):
-                fp_names = [Path(fp).name for fp in file_paths]
-                fp_names = ",".join(fp_names)
-                fp_names_full = [Path(fp).as_posix() for fp in file_paths]
-                fp_names_full = "\n".join(fp_names_full)
-            else:
-                fp_names = Path(file_paths).name
-                fp_names_full = Path(file_paths).as_posix()
-
-            self.data.ims_d.file_info_input.setText(fp_names)
-            self.data.ims_d.file_info_input.setToolTip(fp_names_full)
+            self._update_ims_filepaths(self.ims_pixel_map.data)
 
     def _add_ims_fiducials(self) -> None:
         """
@@ -231,6 +237,8 @@ class IMSMicroLink(QWidget):
 
         if "IMS Pixel Map" in self.viewer.layers:
             self.viewer.layers.pop("IMS Pixel Map")
+            self.viewer.layers.pop("IMS ROIs")
+            self.viewer.layers.pop("IMS Fiducials")
 
         self.viewer.add_image(
             self.ims_pixel_map.pixelmap_padded,
