@@ -254,6 +254,27 @@ class PixelMapIMS:
             self.x_coords_pad = self.x_coords_min
             self.y_coords_pad = self.y_coords_min
 
+    def add_pixel_data(
+        self,
+        data: Union[str, np.ndarray],
+        infer_regions: bool = True,
+    ):
+        if isinstance(data, (str, np.ndarray)):
+            data_imported = [data]
+        else:
+            data_imported = data
+
+        for data in data_imported:
+            self.read_pixel_data(data, infer_regions=infer_regions)
+
+        self.data.extend(data_imported)
+
+        self._pixelmap_minimized: np.ndarray = self._make_pixel_map_at_ims(
+            map_type="minimized", randomize=True
+        )
+        self.pixelmap_padded: NDArray = self._pixelmap_minimized
+        self._shape_map_minimized = self._make_shape_map(map_type="minimized")
+
     def _get_xy_extents_coords(
         self, map_type: str = "minimized"
     ) -> Tuple[int, int, NDArray, NDArray]:
@@ -534,3 +555,13 @@ class PixelMapIMS:
             )
         else:
             return
+
+
+self = PixelMapIMS(
+    [
+        "C:/Users/john/Dropbox (VU Basic Sciences)/benchmark/multi-roi-test-roi1.txt",
+        "C:/Users/john/Dropbox (VU Basic Sciences)/benchmark/multi-roi-test-roi2.txt",
+    ]
+)
+
+self
