@@ -70,7 +70,7 @@ class OmeTiffWriter:
             1
         ]  # type:ignore
 
-        omexml = self.microscopy_image.ome_metadata.to_xml().encode('utf-8')
+        omexml = self.microscopy_image.ome_metadata.to_xml().encode("utf-8")
 
         subifds = n_pyr_levels - 1
 

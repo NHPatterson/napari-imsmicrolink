@@ -392,7 +392,7 @@ class PixelMapIMS:
             self.pixelmap_padded = self._pixelmap_minimized
         else:
             self.pixelmap_padded[
-                self.y_coords_pad[roi_idx], self.y_coords_pad[roi_idx]  # type:ignore
+                self.y_coords_pad[roi_idx], self.x_coords_pad[roi_idx]  # type:ignore
             ] = 0
             self.x_coords_pad = self.x_coords_pad[non_roi_idx]  # type:ignore
             self.y_coords_pad = self.y_coords_pad[non_roi_idx]  # type:ignore
