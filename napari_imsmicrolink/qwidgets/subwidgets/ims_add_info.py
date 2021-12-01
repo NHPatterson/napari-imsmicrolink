@@ -6,6 +6,7 @@ from qtpy.QtWidgets import (
     QLineEdit,
     QFormLayout,
     QSizePolicy,
+    QComboBox,
 )
 from qtpy.QtGui import QDoubleValidator
 from qtpy.QtCore import Qt
@@ -38,8 +39,13 @@ class AddIMSWidget(QWidget):
         # self.file_info_input.setMaximumWidth(80)
         self.file_info_input.setWordWrap(True)
 
+        self.delete_box = QComboBox()
+        self.delete_btn = QPushButton("Delete ROI")
+
         self.info_grid.layout().addRow(self.file_info_label, self.file_info_input)
         self.info_grid.layout().addRow(self.res_info_label, self.res_info_input)
+        # self.info_grid.layout().addRow(self.del_label,)
+        self.info_grid.layout().addRow(self.delete_box, self.delete_btn)
 
         self.info_grid.layout().setAlignment(Qt.AlignmentFlag.AlignTop)
         self.layout().addWidget(self.info_grid)
