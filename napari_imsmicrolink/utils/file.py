@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, Tuple, List
 from pathlib import Path
 from qtpy.QtWidgets import QWidget, QFileDialog
 
@@ -31,3 +31,16 @@ def open_file_dialog(
         return file_path
     else:
         return None
+
+
+def _generate_ims_fp_info(file_paths: Union[str, List[str]]) -> Tuple[str, str]:
+    if isinstance(file_paths, list):
+        fp_names = [Path(fp).name for fp in file_paths]
+        fp_names = ",".join(fp_names)
+        fp_names_full = [Path(fp).as_posix() for fp in file_paths]
+        fp_names_full = "\n".join(fp_names_full)
+    else:
+        fp_names = Path(file_paths).name
+        fp_names_full = Path(file_paths).as_posix()
+
+    return fp_names, fp_names_full

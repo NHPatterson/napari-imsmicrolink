@@ -54,7 +54,7 @@ class MicroRegImage:
                 pyramid_consistent = np.where(np.asarray(dim_size_comparison) < 0.5)[0]
 
             for pyr_idx in pyramid_consistent:
-                with BioFile(self.image_filepath, pyr_idx) as bf:
+                with BioFile(self.image_filepath, pyr_idx, dask_tiles=True) as bf:
                     dask_im = da.squeeze(bf.to_dask())
                     if len(dask_im.shape) != 3:
                         dask_im = dask_im.reshape(
