@@ -12,7 +12,7 @@ from napari_imsmicrolink.utils.points import apply_rotmat_points
 class PixelMapIMS:
     def __init__(
         self,
-        data: Union[str, np.ndarray],
+        data: Union[str, np.ndarray, Path],
         infer_regions: bool = True,
     ):
 
@@ -24,7 +24,7 @@ class PixelMapIMS:
         data : n_pix x 3 (regions, x , y) np.ndarray or file path as string
         infer_regions : for imzML import, regions will be infered from non connected groups of pixels
         """
-        if isinstance(data, (str, np.ndarray)):
+        if isinstance(data, (str, Path, np.ndarray)):
             data_imported = [data]
         else:
             data_imported = data
@@ -218,7 +218,7 @@ class PixelMapIMS:
             regions, x, y = self._read_sqlite_rxy(data)
 
         elif Path(data).suffix.lower() == ".imzml":
-            regions, x, y = self._read_imzml_rxy(data, infer_regions=infer_regions)
+            regions, x, y = self._read_imzml_rxy(str(data), infer_regions=infer_regions)
 
         elif Path(data).suffix.lower() == ".csv":
             (
@@ -474,7 +474,7 @@ class PixelMapIMS:
             },
         }
 
-    def prepare_pmap_data_csv(self) -> pd.DataFrame:
+    def prepare_pmap_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
                 "regions": self.regions,

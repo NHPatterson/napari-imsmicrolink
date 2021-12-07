@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import SimpleITK as sitk
 from napari_imsmicrolink.data.image_transform import ImageTransform
 
 
@@ -55,3 +56,13 @@ def test_ImageTransform_compute_transform():
     assert itfm.inverse_affine_np_mat_xy_px is not None
     assert itfm.inverse_affine_np_mat_yx_px is not None
     assert itfm.point_reg_error < 10
+
+
+def test_ImageTransform_apply_transform_pts():
+    aff_tform = sitk.AffineTransform(2)
+    aff_tform.SetMatrix([2, 0, 0, 2])
+    pts = np.array([[1, 1], [2, 2]]).astype(float)
+
+    tformed_pts = ImageTransform.apply_transform_to_pts(pts, aff_tform)
+    scaled_pts = np.array([[2, 2], [4, 4]]).astype(np.double)
+    np.testing.assert_array_equal(tformed_pts, scaled_pts)
