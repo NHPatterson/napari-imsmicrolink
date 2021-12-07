@@ -73,52 +73,52 @@ class IMSMicroLink(QWidget):
         self._ims_rot = 0
 
         # controller widgets
-        self.data: DataControl = DataControl(self)
-        self.ims_c: IMSControl = IMSControl(self)
-        self.tform_c: TformControl = TformControl(self)
-        self.save_c: SaveControl = SaveControl(self)
+        self._data: DataControl = DataControl(self)
+        self._ims_c: IMSControl = IMSControl(self)
+        self._tform_c: TformControl = TformControl(self)
+        self._save_c: SaveControl = SaveControl(self)
 
         # layout widgets in GUI
         self.setLayout(QVBoxLayout())
-        self.layout().addWidget(self.data.data_frame)
-        self.layout().addWidget(self.ims_c.ims_ctrl_frame)
-        self.layout().addWidget(self.tform_c.tform_ctrl_frame)
-        self.layout().addWidget(self.save_c.save_ctrl_frame)
+        self.layout().addWidget(self._data.data_frame)
+        self.layout().addWidget(self._ims_c.ims_ctrl_frame)
+        self.layout().addWidget(self._tform_c.tform_ctrl_frame)
+        self.layout().addWidget(self._save_c.save_ctrl_frame)
         self.layout().addStretch(1)
 
         # button actions for widgets
         # data reading
-        self.data.ims_d.add_ims_data.clicked.connect(self.read_ims_data)
-        self.data.ims_d.delete_btn.clicked.connect(self._delete_ims_roi)
-        self.data.micro_d.add_micro_data.clicked.connect(self.read_micro_data)
+        self._data.ims_d.add_ims_data.clicked.connect(self.read_ims_data)
+        self._data.ims_d.delete_btn.clicked.connect(self._delete_ims_roi)
+        self._data.micro_d.add_micro_data.clicked.connect(self.read_micro_data)
 
         # ims canvas control
-        self.ims_c.ims_ctl.do_padding_btn.clicked.connect(self._pad_ims_canvas)
-        self.ims_c.ims_ctl.micron_check.clicked.connect(
+        self._ims_c.ims_ctl.do_padding_btn.clicked.connect(self._pad_ims_canvas)
+        self._ims_c.ims_ctl.micron_check.clicked.connect(
             lambda: self._set_pad_by("micron")
         )
-        self.ims_c.ims_ctl.pixel_check.clicked.connect(
+        self._ims_c.ims_ctl.pixel_check.clicked.connect(
             lambda: self._set_pad_by("pixel")
         )
 
         # transform control
-        self.tform_c.tform_ctl.run_transform.clicked.connect(self.run_transformation)
-        self.tform_c.rot_ctl.rot_mi_90cw.clicked.connect(
+        self._tform_c.tform_ctl.run_transform.clicked.connect(self.run_transformation)
+        self._tform_c.rot_ctl.rot_mi_90cw.clicked.connect(
             lambda: self._rotate_modality("microscopy", -90)
         )
-        self.tform_c.rot_ctl.rot_mi_90ccw.clicked.connect(
+        self._tform_c.rot_ctl.rot_mi_90ccw.clicked.connect(
             lambda: self._rotate_modality("microscopy", 90)
         )
-        self.tform_c.rot_ctl.rot_mi_180cw.clicked.connect(
+        self._tform_c.rot_ctl.rot_mi_180cw.clicked.connect(
             lambda: self._rotate_modality("microscopy", 180)
         )
-        self.tform_c.rot_ctl.rot_mi_180ccw.clicked.connect(
+        self._tform_c.rot_ctl.rot_mi_180ccw.clicked.connect(
             lambda: self._rotate_modality("microscopy", 180)
         )
-        self.tform_c.rot_ctl.rot_ims_90cw.clicked.connect(
+        self._tform_c.rot_ctl.rot_ims_90cw.clicked.connect(
             lambda: self._rotate_modality("ims", -90)
         )
-        self.tform_c.rot_ctl.rot_ims_90ccw.clicked.connect(
+        self._tform_c.rot_ctl.rot_ims_90ccw.clicked.connect(
             lambda: self._rotate_modality("ims", 90)
         )
         # self.tform_c.rot_ctl.rot_ims_180cw.clicked.connect(
@@ -129,31 +129,23 @@ class IMSMicroLink(QWidget):
         # )
 
         # save control
-        self.save_c.save_ctl.reset_data.clicked.connect(self.reset_data)
-        self.save_c.save_ctl.save_data.clicked.connect(self.save_data)
+        self._save_c.save_ctl.reset_data.clicked.connect(self.reset_data)
+        self._save_c.save_ctl.save_data.clicked.connect(self.save_data)
 
         # update spatial resolutions
-        self.ims_res_timer = QTimer()
-        self.ims_res_timer.setSingleShot(True)
-        self.ims_res_timer.timeout.connect(self._set_ims_res)
-        self.data.ims_d.res_info_input.textChanged.connect(self._ims_res_timing)
+        self._ims_res_timer = QTimer()
+        self._ims_res_timer.setSingleShot(True)
+        self._ims_res_timer.timeout.connect(self._set_ims_res)
+        self._data.ims_d.res_info_input.textChanged.connect(self._ims_res_timing)
 
-        self.micro_res_timer = QTimer()
-        self.micro_res_timer.setSingleShot(True)
-        self.micro_res_timer.timeout.connect(self._set_micro_res)
-        self.data.micro_d.res_info_input.textChanged.connect(self._micro_res_timing)
+        self._micro_res_timer = QTimer()
+        self._micro_res_timer.setSingleShot(True)
+        self._micro_res_timer.timeout.connect(self._set_micro_res)
+        self._data.micro_d.res_info_input.textChanged.connect(self._micro_res_timing)
 
         # start with certain buttons disabled
-        self.save_c.save_ctl.save_data.setEnabled(False)
-        self.tform_c.tform_ctl.run_transform.setEnabled(False)
-
-    def _ims_res_timing(self) -> None:
-        """Wait until there are no changes for 0.5 second before making changes."""
-        self.ims_res_timer.start(500)
-
-    def _micro_res_timing(self) -> None:
-        """Wait until there are no changes for 0.5 second before making changes."""
-        self.micro_res_timer.start(500)
+        self._save_c.save_ctl.save_data.setEnabled(False)
+        self._tform_c.tform_ctl.run_transform.setEnabled(False)
 
     def read_ims_data(self, file_paths: Optional[Union[str, List[str]]] = None) -> None:
         """
@@ -173,15 +165,15 @@ class IMSMicroLink(QWidget):
                 self.ims_pixel_map.add_pixel_data(file_paths)
             else:
                 self.ims_pixel_map = PixelMapIMS(file_paths)
-                if len(self.data.ims_d.res_info_input.text()) == 0:
-                    self.data.ims_d.res_info_input.setText("1")
+                if len(self._data.ims_d.res_info_input.text()) == 0:
+                    self._data.ims_d.res_info_input.setText("1")
 
             self._add_ims_data()
 
             fp_names, fp_names_full = _generate_ims_fp_info(self.ims_pixel_map.data)
 
-            self.data.ims_d.file_info_input.setText(fp_names)
-            self.data.ims_d.file_info_input.setToolTip(fp_names_full)
+            self._data.ims_d.file_info_input.setText(fp_names)
+            self._data.ims_d.file_info_input.setToolTip(fp_names_full)
 
     def _add_ims_fiducials(self) -> None:
         """
@@ -199,35 +191,8 @@ class IMSMicroLink(QWidget):
             symbol="x",
         )
 
-        self.viewer.layers["IMS Fiducials"].events.data.connect(self._get_target_pts)
+        self.viewer.layers["IMS Fiducials"].events._data.connect(self._get_target_pts)
 
-    def _collect_ims_res(self) -> float:
-        if len(self.data.ims_d.res_info_input.text()) > 0:
-            return float(self.data.ims_d.res_info_input.text())
-        else:
-            return 1.0
-
-    def _add_ims_data(self) -> None:
-
-        ims_res = self._collect_ims_res()
-
-        if "IMS Pixel Map" in self.viewer.layers:
-            self.viewer.layers.pop("IMS Pixel Map")
-            self.viewer.layers.pop("IMS ROIs")
-            self.viewer.layers.pop("IMS Fiducials")
-
-        self.viewer.add_image(
-            self.ims_pixel_map.pixelmap_padded,
-            name="IMS Pixel Map",
-            scale=(ims_res, ims_res),
-            colormap="viridis",
-        )
-
-        self._add_ims_fiducials()
-        self._add_ims_rois()
-        self._update_output_size()
-
-        self.viewer.reset_view()
 
     def _generate_ims_rois(self, map_type="minimized"):
         if map_type == "minimized":
@@ -248,7 +213,7 @@ class IMSMicroLink(QWidget):
 
     def _add_shape_names_combo(self, shape_names) -> None:
         for sname in shape_names:
-            self.data.ims_d.delete_box.addItem(str(sname))
+            self._data.ims_d.delete_box.addItem(str(sname))
 
     def _add_ims_rois(self) -> None:
 
@@ -277,6 +242,35 @@ class IMSMicroLink(QWidget):
 
         self._add_shape_names_combo(shape_names)
 
+    def _collect_ims_res(self) -> float:
+        if len(self._data.ims_d.res_info_input.text()) > 0:
+            return float(self._data.ims_d.res_info_input.text())
+        else:
+            return 1.0
+
+    def _add_ims_data(self) -> None:
+
+        ims_res = self._collect_ims_res()
+
+        if "IMS Pixel Map" in self.viewer.layers:
+            self.viewer.layers.pop("IMS Pixel Map")
+            self.viewer.layers.pop("IMS ROIs")
+            self.viewer.layers.pop("IMS Fiducials")
+
+        self.viewer.add_image(
+            self.ims_pixel_map.pixelmap_padded,
+            name="IMS Pixel Map",
+            scale=(ims_res, ims_res),
+            colormap="viridis",
+        )
+
+        self._add_ims_fiducials()
+        self._add_ims_rois()
+        self._update_output_size()
+
+        self.viewer.reset_view()
+
+
     def _add_micro_fiducials(self) -> None:
         if self.ims_pixel_map:
             if self.ims_pixel_map.ims_res == 1 or self.ims_pixel_map.ims_res is None:
@@ -299,18 +293,18 @@ class IMSMicroLink(QWidget):
             symbol="cross",
         )
 
-        self.viewer.layers["Microscopy Fiducials"].events.data.connect(
+        self.viewer.layers["Microscopy Fiducials"].events._data.connect(
             self._get_source_pts
         )
 
     def _get_target_pts(self, _) -> None:
-        self.tform_c.tform_ctl.pt_table.add_point_data(
-            self.viewer.layers["IMS Fiducials"].data,
+        self._tform_c.tform_ctl.pt_table.add_point_data(
+            self.viewer.layers["IMS Fiducials"]._data,
             ims_or_micro="ims",
             image_res=self.ims_pixel_map.ims_res,
         )
         self.image_transformer.add_points(
-            self.viewer.layers["IMS Fiducials"].data,
+            self.viewer.layers["IMS Fiducials"]._data,
             round=True,
             src_or_tgt="target",
             scaling=self.ims_pixel_map.ims_res,
@@ -318,30 +312,30 @@ class IMSMicroLink(QWidget):
         self._check_for_tforms()
 
         if self.image_transformer.point_reg_error != float("inf"):
-            self.tform_c.tform_ctl.tform_error.setText(
+            self._tform_c.tform_ctl.tform_error.setText(
                 f"{np.round(self.image_transformer.point_reg_error, 2)}"
             )
             if self.image_transformer.point_reg_error < self.ims_pixel_map.ims_res / 2:
-                self.tform_c.tform_ctl.tform_error.setStyleSheet("color: green")
+                self._tform_c.tform_ctl.tform_error.setStyleSheet("color: green")
             else:
-                self.tform_c.tform_ctl.tform_error.setStyleSheet("color: red")
+                self._tform_c.tform_ctl.tform_error.setStyleSheet("color: red")
 
     def _get_source_pts(self, _) -> None:
-        self.tform_c.tform_ctl.pt_table.add_point_data(
-            self.viewer.layers["Microscopy Fiducials"].data,
+        self._tform_c.tform_ctl.pt_table.add_point_data(
+            self.viewer.layers["Microscopy Fiducials"]._data,
             ims_or_micro="micro",
             image_res=self.microscopy_image.base_layer_pixel_res,
         )
 
         self.image_transformer.add_points(
-            self.viewer.layers["Microscopy Fiducials"].data,
+            self.viewer.layers["Microscopy Fiducials"]._data,
             round=False,
             src_or_tgt="source",
             scaling=self.microscopy_image.base_layer_pixel_res,
         )
 
         if self.image_transformer.point_reg_error != float("inf"):
-            self.tform_c.tform_ctl.tform_error.setText(
+            self._tform_c.tform_ctl.tform_error.setText(
                 f"{np.round(self.image_transformer.point_reg_error, 3)}"
             )
 
@@ -376,12 +370,12 @@ class IMSMicroLink(QWidget):
 
         self._update_output_spacing(self.microscopy_image.base_layer_pixel_res)
         self.micro_image_names = self.microscopy_image.cnames
-        self.data.micro_d.file_info_input.setText(fp_name)
-        self.data.micro_d.file_info_input.setToolTip(fp_name_full)
-        self.data.micro_d.res_info_input.setText(
+        self._data.micro_d.file_info_input.setText(fp_name)
+        self._data.micro_d.file_info_input.setToolTip(fp_name_full)
+        self._data.micro_d.res_info_input.setText(
             str(self.microscopy_image.base_layer_pixel_res)
         )
-        self.data.micro_d.res_info_input.setText(
+        self._data.micro_d.res_info_input.setText(
             str(self.microscopy_image.base_layer_pixel_res)
         )
         self._add_micro_fiducials()
@@ -403,13 +397,13 @@ class IMSMicroLink(QWidget):
 
     def _check_for_tforms(self) -> None:
         if self.image_transformer.affine_transform:
-            self.save_c.save_ctl.save_data.setEnabled(True)
-            self.tform_c.tform_ctl.run_transform.setEnabled(True)
+            self._save_c.save_ctl.save_data.setEnabled(True)
+            self._tform_c.tform_ctl.run_transform.setEnabled(True)
 
     def _update_output_size(self) -> None:
         if self.ims_pixel_map:
-            if len(self.data.micro_d.res_info_input.text()) > 0:
-                micro_res = float(self.data.micro_d.res_info_input.text())
+            if len(self._data.micro_d.res_info_input.text()) > 0:
+                micro_res = float(self._data.micro_d.res_info_input.text())
             else:
                 micro_res = 1
 
@@ -437,44 +431,44 @@ class IMSMicroLink(QWidget):
 
     def _set_pad_by(self, unit: str) -> None:
         if unit == "micron":
-            if self.ims_c.ims_ctl.pixel_check.isChecked():
-                self.ims_c.ims_ctl.pixel_check.setChecked(False)
+            if self._ims_c.ims_ctl.pixel_check.isChecked():
+                self._ims_c.ims_ctl.pixel_check.setChecked(False)
             else:
-                self.ims_c.ims_ctl.pixel_check.setChecked(True)
+                self._ims_c.ims_ctl.pixel_check.setChecked(True)
         else:
-            if self.ims_c.ims_ctl.micron_check.isChecked():
-                self.ims_c.ims_ctl.micron_check.setChecked(False)
+            if self._ims_c.ims_ctl.micron_check.isChecked():
+                self._ims_c.ims_ctl.micron_check.setChecked(False)
             else:
-                self.ims_c.ims_ctl.micron_check.setChecked(True)
+                self._ims_c.ims_ctl.micron_check.setChecked(True)
 
         if self.ims_pixel_map:
             self._update_current_padding()
 
     def _update_current_padding(self) -> None:
-        if self.ims_c.ims_ctl.micron_check.isChecked():
-            self.ims_c.ims_ctl.cur_pad_left.setText(
+        if self._ims_c.ims_ctl.micron_check.isChecked():
+            self._ims_c.ims_ctl.cur_pad_left.setText(
                 str(self.ims_pixel_map.padding_microns.get("x_left"))
             )
-            self.ims_c.ims_ctl.cur_pad_right.setText(
+            self._ims_c.ims_ctl.cur_pad_right.setText(
                 str(self.ims_pixel_map.padding_microns.get("x_right"))
             )
-            self.ims_c.ims_ctl.cur_pad_top.setText(
+            self._ims_c.ims_ctl.cur_pad_top.setText(
                 str(self.ims_pixel_map.padding_microns.get("y_top"))
             )
-            self.ims_c.ims_ctl.cur_pad_bottom.setText(
+            self._ims_c.ims_ctl.cur_pad_bottom.setText(
                 str(self.ims_pixel_map.padding_microns.get("y_bottom"))
             )
         else:
-            self.ims_c.ims_ctl.cur_pad_left.setText(
+            self._ims_c.ims_ctl.cur_pad_left.setText(
                 str(self.ims_pixel_map.padding.get("x_left"))
             )
-            self.ims_c.ims_ctl.cur_pad_right.setText(
+            self._ims_c.ims_ctl.cur_pad_right.setText(
                 str(self.ims_pixel_map.padding.get("x_right"))
             )
-            self.ims_c.ims_ctl.cur_pad_top.setText(
+            self._ims_c.ims_ctl.cur_pad_top.setText(
                 str(self.ims_pixel_map.padding.get("y_top"))
             )
-            self.ims_c.ims_ctl.cur_pad_bottom.setText(
+            self._ims_c.ims_ctl.cur_pad_bottom.setText(
                 str(self.ims_pixel_map.padding.get("y_bottom"))
             )
 
@@ -483,29 +477,29 @@ class IMSMicroLink(QWidget):
         shape_data, shape_names, shape_props, _ = self._generate_ims_rois(
             map_type="padded"
         )
-        self.viewer.layers["IMS ROIs"].data = shape_data
+        self.viewer.layers["IMS ROIs"]._data = shape_data
         self.viewer.layers["IMS ROIs"].properties = shape_props
         self.viewer.layers["IMS ROIs"].text.values = shape_names
 
     def _get_pad_values(self) -> Tuple[int, int, int, int]:
         x_left = (
-            int(self.ims_c.ims_ctl.pad_left.text())
-            if len(self.ims_c.ims_ctl.pad_left.text()) > 0
+            int(self._ims_c.ims_ctl.pad_left.text())
+            if len(self._ims_c.ims_ctl.pad_left.text()) > 0
             else 0
         )
         x_right = (
-            int(self.ims_c.ims_ctl.pad_right.text())
-            if len(self.ims_c.ims_ctl.pad_right.text()) > 0
+            int(self._ims_c.ims_ctl.pad_right.text())
+            if len(self._ims_c.ims_ctl.pad_right.text()) > 0
             else 0
         )
         y_top = (
-            int(self.ims_c.ims_ctl.pad_top.text())
-            if len(self.ims_c.ims_ctl.pad_top.text()) > 0
+            int(self._ims_c.ims_ctl.pad_top.text())
+            if len(self._ims_c.ims_ctl.pad_top.text()) > 0
             else 0
         )
         y_bottom = (
-            int(self.ims_c.ims_ctl.pad_bottom.text())
-            if len(self.ims_c.ims_ctl.pad_bottom.text()) > 0
+            int(self._ims_c.ims_ctl.pad_bottom.text())
+            if len(self._ims_c.ims_ctl.pad_bottom.text()) > 0
             else 0
         )
         return x_left, x_right, y_top, y_bottom
@@ -515,7 +509,7 @@ class IMSMicroLink(QWidget):
 
         ims_res = self._collect_ims_res()
 
-        if self.ims_c.ims_ctl.micron_check.isChecked():
+        if self._ims_c.ims_ctl.micron_check.isChecked():
             x_left = np.ceil(x_left / ims_res).astype(int)
             x_right = np.ceil(x_right / ims_res).astype(int)
             y_top = np.ceil(y_top / ims_res).astype(int)
@@ -531,21 +525,21 @@ class IMSMicroLink(QWidget):
         self.ims_pixel_map.padding = padding
 
         # update image
-        self.viewer.layers["IMS Pixel Map"].data = self.ims_pixel_map.pixelmap_padded
+        self.viewer.layers["IMS Pixel Map"]._data = self.ims_pixel_map.pixelmap_padded
         self._pad_shapes()
 
         # update fiducial pts
-        updated_ims_fids = deepcopy(self.viewer.layers["IMS Fiducials"].data)
+        updated_ims_fids = deepcopy(self.viewer.layers["IMS Fiducials"]._data)
         updated_ims_fids[:, 0] += y_top
         updated_ims_fids[:, 1] += x_left
         updated_ims_fids[updated_ims_fids < 0] = 0
-        self.viewer.layers["IMS Fiducials"].data = updated_ims_fids
+        self.viewer.layers["IMS Fiducials"]._data = updated_ims_fids
 
         self._update_current_padding()
-        self.ims_c.ims_ctl.pad_left.setText("")
-        self.ims_c.ims_ctl.pad_right.setText("")
-        self.ims_c.ims_ctl.pad_top.setText("")
-        self.ims_c.ims_ctl.pad_bottom.setText("")
+        self._ims_c.ims_ctl.pad_left.setText("")
+        self._ims_c.ims_ctl.pad_right.setText("")
+        self._ims_c.ims_ctl.pad_top.setText("")
+        self._ims_c.ims_ctl.pad_bottom.setText("")
 
         self._update_output_size()
 
@@ -561,7 +555,7 @@ class IMSMicroLink(QWidget):
             and self.image_transformer.inverse_affine_np_mat_yx_um is not None
         ):
             target_tform_modality = (
-                self.tform_c.tform_ctl.target_mode_combo.currentText()
+                self._tform_c.tform_ctl.target_mode_combo.currentText()
             )
             if target_tform_modality == "Microscopy":
                 self.viewer.layers[
@@ -583,9 +577,9 @@ class IMSMicroLink(QWidget):
             self.viewer.layers.pop(0)
 
         # reset GUI elements
-        self.data.ims_d._reset()
-        self.data.micro_d._reset()
-        self.tform_c.tform_ctl._reset()
+        self._data.ims_d._reset()
+        self._data.micro_d._reset()
+        self._tform_c.tform_ctl._reset()
 
         # reset all data objects
         self.microscopy_image = None
@@ -596,13 +590,13 @@ class IMSMicroLink(QWidget):
         self.micro_image_names = None
 
         # start with certain buttons disabled
-        self.save_c.save_ctl.save_data.setEnabled(False)
-        self.tform_c.tform_ctl.run_transform.setEnabled(False)
+        self._save_c.save_ctl.save_data.setEnabled(False)
+        self._tform_c.tform_ctl.run_transform.setEnabled(False)
 
-        self.ims_c.ims_ctl.cur_pad_left.setText("0")
-        self.ims_c.ims_ctl.cur_pad_right.setText("0")
-        self.ims_c.ims_ctl.cur_pad_top.setText("0")
-        self.ims_c.ims_ctl.cur_pad_bottom.setText("0")
+        self._ims_c.ims_ctl.cur_pad_left.setText("0")
+        self._ims_c.ims_ctl.cur_pad_right.setText("0")
+        self._ims_c.ims_ctl.cur_pad_top.setText("0")
+        self._ims_c.ims_ctl.cur_pad_bottom.setText("0")
 
         return
 
@@ -624,7 +618,7 @@ class IMSMicroLink(QWidget):
 
         pmap_coord_data = self.ims_pixel_map.prepare_pmap_dataframe()
 
-        micro_res = float(self.data.micro_d.res_info_input.text())
+        micro_res = float(self._data.micro_d.res_info_input.text())
         ims_res = int(self.ims_pixel_map.ims_res)
 
         ims_pts_um = self.image_transformer.target_pts.astype(float)[:, [1, 0]]
@@ -679,8 +673,8 @@ class IMSMicroLink(QWidget):
         )
 
         # need to scale points to physical space to transform
-        ims_res = float(self.data.ims_d.res_info_input.text())
-        micro_res = float(self.data.micro_d.res_info_input.text())
+        ims_res = float(self._data.ims_d.res_info_input.text())
+        micro_res = float(self._data.micro_d.res_info_input.text())
 
         xy_coords_scaled = xy_coords * ims_res
 
@@ -707,7 +701,7 @@ class IMSMicroLink(QWidget):
             self.viewer.layers["IMS ROIs"].properties["name"].astype(str) == roi_name
         )[0]
         for idx in rm_idx:
-            self.viewer.layers["IMS ROIs"].data.pop(int(idx))
+            self.viewer.layers["IMS ROIs"]._data.pop(int(idx))
 
         for k in self.viewer.layers["IMS ROIs"].properties:
             self.viewer.layers["IMS ROIs"].properties[k] = np.delete(
@@ -717,11 +711,11 @@ class IMSMicroLink(QWidget):
         return
 
     def _delete_ims_roi(self):
-        roi_name = self.data.ims_d.delete_box.currentText()
+        roi_name = self._data.ims_d.delete_box.currentText()
         self.ims_pixel_map.delete_roi(roi_name, remove_padding=False)
-        self.viewer.layers["IMS Pixel Map"].data = self.ims_pixel_map.pixelmap_padded
+        self.viewer.layers["IMS Pixel Map"]._data = self.ims_pixel_map.pixelmap_padded
         shape_names = np.unique(self.ims_pixel_map.regions).astype(str)
-        self.data.ims_d.delete_box.clear()
+        self._data.ims_d.delete_box.clear()
         self._add_shape_names_combo(shape_names)
         # self._remove_ims_roi_in_viewer(roi_name)
         self._pad_shapes()
@@ -735,7 +729,7 @@ class IMSMicroLink(QWidget):
             project_name
         )
 
-        target_tform_modality = self.tform_c.tform_ctl.target_mode_combo.currentText()
+        target_tform_modality = self._tform_c.tform_ctl.target_mode_combo.currentText()
         if target_tform_modality == "Microscopy":
             (
                 transformed_coords_ims,
@@ -795,8 +789,8 @@ class IMSMicroLink(QWidget):
             return
 
     def _set_ims_res(self) -> None:
-        if len(self.data.ims_d.res_info_input.text()) > 0:
-            ims_res = float(self.data.ims_d.res_info_input.text())
+        if len(self._data.ims_d.res_info_input.text()) > 0:
+            ims_res = float(self._data.ims_d.res_info_input.text())
             self.viewer.layers["IMS Pixel Map"].scale = (ims_res, ims_res)
             self.viewer.layers["IMS ROIs"].scale = (ims_res, ims_res)
             self.viewer.layers["IMS Fiducials"].scale = (ims_res, ims_res)
@@ -808,8 +802,8 @@ class IMSMicroLink(QWidget):
             self._update_output_size()
 
     def _set_micro_res(self) -> None:
-        if len(self.data.micro_d.res_info_input.text()) > 0:
-            micro_res = float(self.data.micro_d.res_info_input.text())
+        if len(self._data.micro_d.res_info_input.text()) > 0:
+            micro_res = float(self._data.micro_d.res_info_input.text())
             if self.micro_image_names:
                 for micro_im in self.micro_image_names:
                     self.viewer.layers[micro_im].scale = (micro_res, micro_res)
@@ -826,7 +820,7 @@ class IMSMicroLink(QWidget):
 
     def _rotate_modality(self, modality: str, angle: Union[int, float]):
         if modality == "microscopy" and self.microscopy_image:
-            image_size = self.viewer.layers[self.micro_image_names[0]].data.shape
+            image_size = self.viewer.layers[self.micro_image_names[0]]._data.shape
             image_spacing = self.viewer.layers[self.micro_image_names[0]].scale
             cum_angle = angle + self._micro_rot
             if cum_angle > 360:
@@ -840,12 +834,12 @@ class IMSMicroLink(QWidget):
 
         if modality == "ims" and self.ims_pixel_map:
 
-            if len(self.viewer.layers["IMS Fiducials"].data) > 0:
+            if len(self.viewer.layers["IMS Fiducials"]._data) > 0:
                 updated_fiducials = self.ims_pixel_map.rotate_coordinates(
                     rotation_angle=angle,
-                    fiducial_pts=self.viewer.layers["IMS Fiducials"].data[:, [1, 0]],
+                    fiducial_pts=self.viewer.layers["IMS Fiducials"]._data[:, [1, 0]],
                 )
-                self.viewer.layers["IMS Fiducials"].data = updated_fiducials[:, [1, 0]]
+                self.viewer.layers["IMS Fiducials"]._data = updated_fiducials[:, [1, 0]]
             else:
                 self.ims_pixel_map.rotate_coordinates(
                     rotation_angle=angle,
@@ -853,12 +847,19 @@ class IMSMicroLink(QWidget):
 
             self.viewer.layers[
                 "IMS Pixel Map"
-            ].data = self.ims_pixel_map.pixelmap_padded
+            ]._data = self.ims_pixel_map.pixelmap_padded
             shape_data, *_ = self._generate_ims_rois()
             self._pad_shapes()
             self._ims_rot += angle
         return
 
+    def _ims_res_timing(self) -> None:
+        """Wait until there are no changes for 0.5 second before making changes."""
+        self._ims_res_timer.start(500)
+
+    def _micro_res_timing(self) -> None:
+        """Wait until there are no changes for 0.5 second before making changes."""
+        self._micro_res_timer.start(500)
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
