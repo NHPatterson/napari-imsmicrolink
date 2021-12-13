@@ -191,8 +191,7 @@ class IMSMicroLink(QWidget):
             symbol="x",
         )
 
-        self.viewer.layers["IMS Fiducials"].events._data.connect(self._get_target_pts)
-
+        self.viewer.layers["IMS Fiducials"].events.data.connect(self._get_target_pts)
 
     def _generate_ims_rois(self, map_type="minimized"):
         if map_type == "minimized":
@@ -264,12 +263,11 @@ class IMSMicroLink(QWidget):
             colormap="viridis",
         )
 
-        self._add_ims_fiducials()
         self._add_ims_rois()
+        self._add_ims_fiducials()
         self._update_output_size()
 
         self.viewer.reset_view()
-
 
     def _add_micro_fiducials(self) -> None:
         if self.ims_pixel_map:
@@ -293,18 +291,18 @@ class IMSMicroLink(QWidget):
             symbol="cross",
         )
 
-        self.viewer.layers["Microscopy Fiducials"].events._data.connect(
+        self.viewer.layers["Microscopy Fiducials"].events.data.connect(
             self._get_source_pts
         )
 
     def _get_target_pts(self, _) -> None:
         self._tform_c.tform_ctl.pt_table.add_point_data(
-            self.viewer.layers["IMS Fiducials"]._data,
+            self.viewer.layers["IMS Fiducials"].data,
             ims_or_micro="ims",
             image_res=self.ims_pixel_map.ims_res,
         )
         self.image_transformer.add_points(
-            self.viewer.layers["IMS Fiducials"]._data,
+            self.viewer.layers["IMS Fiducials"].data,
             round=True,
             src_or_tgt="target",
             scaling=self.ims_pixel_map.ims_res,
@@ -322,13 +320,13 @@ class IMSMicroLink(QWidget):
 
     def _get_source_pts(self, _) -> None:
         self._tform_c.tform_ctl.pt_table.add_point_data(
-            self.viewer.layers["Microscopy Fiducials"]._data,
+            self.viewer.layers["Microscopy Fiducials"].data,
             ims_or_micro="micro",
             image_res=self.microscopy_image.base_layer_pixel_res,
         )
 
         self.image_transformer.add_points(
-            self.viewer.layers["Microscopy Fiducials"]._data,
+            self.viewer.layers["Microscopy Fiducials"].data,
             round=False,
             src_or_tgt="source",
             scaling=self.microscopy_image.base_layer_pixel_res,
@@ -477,7 +475,7 @@ class IMSMicroLink(QWidget):
         shape_data, shape_names, shape_props, _ = self._generate_ims_rois(
             map_type="padded"
         )
-        self.viewer.layers["IMS ROIs"]._data = shape_data
+        self.viewer.layers["IMS ROIs"].data = shape_data
         self.viewer.layers["IMS ROIs"].properties = shape_props
         self.viewer.layers["IMS ROIs"].text.values = shape_names
 
@@ -525,15 +523,15 @@ class IMSMicroLink(QWidget):
         self.ims_pixel_map.padding = padding
 
         # update image
-        self.viewer.layers["IMS Pixel Map"]._data = self.ims_pixel_map.pixelmap_padded
+        self.viewer.layers["IMS Pixel Map"].data = self.ims_pixel_map.pixelmap_padded
         self._pad_shapes()
 
         # update fiducial pts
-        updated_ims_fids = deepcopy(self.viewer.layers["IMS Fiducials"]._data)
+        updated_ims_fids = deepcopy(self.viewer.layers["IMS Fiducials"].data)
         updated_ims_fids[:, 0] += y_top
         updated_ims_fids[:, 1] += x_left
         updated_ims_fids[updated_ims_fids < 0] = 0
-        self.viewer.layers["IMS Fiducials"]._data = updated_ims_fids
+        self.viewer.layers["IMS Fiducials"].data = updated_ims_fids
 
         self._update_current_padding()
         self._ims_c.ims_ctl.pad_left.setText("")
@@ -701,7 +699,7 @@ class IMSMicroLink(QWidget):
             self.viewer.layers["IMS ROIs"].properties["name"].astype(str) == roi_name
         )[0]
         for idx in rm_idx:
-            self.viewer.layers["IMS ROIs"]._data.pop(int(idx))
+            self.viewer.layers["IMS ROIs"].data.pop(int(idx))
 
         for k in self.viewer.layers["IMS ROIs"].properties:
             self.viewer.layers["IMS ROIs"].properties[k] = np.delete(
@@ -713,7 +711,7 @@ class IMSMicroLink(QWidget):
     def _delete_ims_roi(self):
         roi_name = self._data.ims_d.delete_box.currentText()
         self.ims_pixel_map.delete_roi(roi_name, remove_padding=False)
-        self.viewer.layers["IMS Pixel Map"]._data = self.ims_pixel_map.pixelmap_padded
+        self.viewer.layers["IMS Pixel Map"].data = self.ims_pixel_map.pixelmap_padded
         shape_names = np.unique(self.ims_pixel_map.regions).astype(str)
         self._data.ims_d.delete_box.clear()
         self._add_shape_names_combo(shape_names)
@@ -744,18 +742,6 @@ class IMSMicroLink(QWidget):
             pmap_coord_data["x_micro_px"] = transformed_coords_micro_px[:, 0]
             pmap_coord_data["y_micro_px"] = transformed_coords_micro_px[:, 1]
 
-        elif target_tform_modality == "IMS":
-            ometiff_writer = OmeTiffWriter(
-                self.microscopy_image,
-                project_name,
-                self.image_transformer.affine_transform,
-                self.image_transformer.output_size,
-                self.image_transformer.output_spacing,
-                tile_size=512,
-                output_dir=output_dir,
-            )
-            ometiff_writer.write_image()
-
         pmeta_out_fp = Path(output_dir) / f"{project_name}-IMSML-meta.json"
 
         with open(pmeta_out_fp, "w") as json_out:
@@ -770,6 +756,18 @@ class IMSMicroLink(QWidget):
         elif output_filetype == ".csv":
             coords_out_fp = Path(output_dir) / f"{project_name}-IMSML-coords.csv"
             pmap_coord_data.to_csv(coords_out_fp, mode="w", index=False)
+
+        if target_tform_modality == "IMS":
+            ometiff_writer = OmeTiffWriter(
+                self.microscopy_image,
+                project_name,
+                self.image_transformer.affine_transform,
+                self.image_transformer.output_size,
+                self.image_transformer.output_spacing,
+                tile_size=512,
+                output_dir=output_dir,
+            )
+            ometiff_writer.write_image()
 
     def save_data(self) -> None:
 
@@ -820,7 +818,7 @@ class IMSMicroLink(QWidget):
 
     def _rotate_modality(self, modality: str, angle: Union[int, float]):
         if modality == "microscopy" and self.microscopy_image:
-            image_size = self.viewer.layers[self.micro_image_names[0]]._data.shape
+            image_size = self.viewer.layers[self.micro_image_names[0]].data.shape
             image_spacing = self.viewer.layers[self.micro_image_names[0]].scale
             cum_angle = angle + self._micro_rot
             if cum_angle > 360:
@@ -834,12 +832,12 @@ class IMSMicroLink(QWidget):
 
         if modality == "ims" and self.ims_pixel_map:
 
-            if len(self.viewer.layers["IMS Fiducials"]._data) > 0:
+            if len(self.viewer.layers["IMS Fiducials"].data) > 0:
                 updated_fiducials = self.ims_pixel_map.rotate_coordinates(
                     rotation_angle=angle,
-                    fiducial_pts=self.viewer.layers["IMS Fiducials"]._data[:, [1, 0]],
+                    fiducial_pts=self.viewer.layers["IMS Fiducials"].data[:, [1, 0]],
                 )
-                self.viewer.layers["IMS Fiducials"]._data = updated_fiducials[:, [1, 0]]
+                self.viewer.layers["IMS Fiducials"].data = updated_fiducials[:, [1, 0]]
             else:
                 self.ims_pixel_map.rotate_coordinates(
                     rotation_angle=angle,
@@ -847,7 +845,7 @@ class IMSMicroLink(QWidget):
 
             self.viewer.layers[
                 "IMS Pixel Map"
-            ]._data = self.ims_pixel_map.pixelmap_padded
+            ].data = self.ims_pixel_map.pixelmap_padded
             shape_data, *_ = self._generate_ims_rois()
             self._pad_shapes()
             self._ims_rot += angle
@@ -860,6 +858,7 @@ class IMSMicroLink(QWidget):
     def _micro_res_timing(self) -> None:
         """Wait until there are no changes for 0.5 second before making changes."""
         self._micro_res_timer.start(500)
+
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():

@@ -555,13 +555,3 @@ class PixelMapIMS:
             )
         else:
             return
-
-
-self = PixelMapIMS(
-    [
-        "C:/Users/john/Dropbox (VU Basic Sciences)/benchmark/multi-roi-test-roi1.txt",
-        "C:/Users/john/Dropbox (VU Basic Sciences)/benchmark/multi-roi-test-roi2.txt",
-    ]
-)
-
-self
