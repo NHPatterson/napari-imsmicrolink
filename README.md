@@ -1,4 +1,5 @@
 # napari-imsmicrolink
+![microlink-logo-update](https://user-images.githubusercontent.com/17855764/146078168-dd557089-ff10-46d6-b24d-268f5d21a9ee.png)
 
 [![License](https://img.shields.io/pypi/l/napari-imsmicrolink.svg?color=green)](https://github.com/nhpatterson/napari-imsmicrolink/raw/master/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-imsmicrolink.svg?color=green)](https://pypi.org/project/napari-imsmicrolink)
