@@ -89,4 +89,35 @@ Many plugins may be used in the course of published (or publishable) research, a
 during conference talks and other public facing events. If you'd like to be cited in
 a particular format, or have a DOI you'd like used, you should provide that information here. -->
 
-Plugin to perform MALDI IMS - microscopy registration using laser ablation marks.
+# napari-imsmicrolink
+
+[napari] plugin to perform MALDI IMS - microscopy registration using laser ablation marks as described in [Anal. Chem. 2018, 90, 21, 12395–12403](https://pubs.acs.org/doi/abs/10.1021/acs.analchem.8b02884).
+
+__N.B.__ This tool is __NOT__ a general purpose registration framework to find transforms between IMS (MALDI or otherwise)
+and microscopy. It is built to align MALDI IMS pixels to their corresponding laser ablation marks as captured by microscopy AFTER the IMS experiment. 
+This approach has the advantage of providing direct evidence of registration quality as IMS pixels are aligned 
+to their _explicit spatial origin_ in microscopy space, improving overall accuracy and confidence of microscopy-driven IMS 
+data analysis.
+
+## Installation
+
+You can install `napari-imsmicrolink` via [pip]:
+
+    pip install napari-imsmicrolink
+
+### Typical experiment workflow
+1. Acquire pre-IMS microscopy (autofluorescence, brightfield) - _optional_
+2. Perform normal IMS sample preparation
+3. Acquire post-IMS microscopy (autofluorescence, brightfield) with matrix still on sample
+that reveals laser ablation marks
+4. Gather IMS data that contains XY integer coordinates for the IMS experiment
+   (.imzML, Bruker spotlist (.txt, .csv), Bruker peaks.sqlite (_FTICR_),
+   Bruker .tsf (TIMS qTOF only))
+5. Run `napari-imsmicrolink` with data 3 and 4
+6. Once registered, use [wsireg] to align other microscopy modalities to IMS-registered post-IMS
+microscopy.
+
+
+[napari]: https://github.com/napari/napari
+[wsireg]: https://github.com/nhpatterson/wsireg
+[pip]: https://pypi.org/project/pip/
