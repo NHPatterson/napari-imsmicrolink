@@ -93,6 +93,9 @@ a particular format, or have a DOI you'd like used, you should provide that info
 
 [napari] plugin to perform MALDI IMS - microscopy registration using laser ablation marks as described in [Anal. Chem. 2018, 90, 21, 12395–12403](https://pubs.acs.org/doi/abs/10.1021/acs.analchem.8b02884).
 
+This plugin is a ALPHA version and some things may not work as they should. Please report any issues encountered and 
+they will be fixed.
+
 __N.B.__ This tool is __NOT__ a general purpose registration framework to find transforms between IMS (MALDI or otherwise)
 and microscopy. It is built to align MALDI IMS pixels to their corresponding laser ablation marks as captured by microscopy AFTER the IMS experiment. 
 This approach has the advantage of providing direct evidence of registration quality as IMS pixels are aligned 
