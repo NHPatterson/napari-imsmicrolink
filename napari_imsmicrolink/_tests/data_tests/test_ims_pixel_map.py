@@ -25,8 +25,11 @@ def test_PixelMapIMS_read(data_fp):
     assert pmap.y_coords_pad is not None
 
 
-def test_PixelMapIMS_rotate(spot_list_data):
-    pmap = PixelMapIMS(spot_list_data)
+def test_PixelMapIMS_rotate():
+    HERE = os.path.dirname(__file__)
+    data_fp = Path(HERE) / "_test_data" / "bruker_spotlist.txt"
+
+    pmap = PixelMapIMS(data_fp)
     pre_rot_x = np.copy(pmap.x_coords_min)
     pmap.rotate_coordinates(90)
     assert np.any(np.not_equal(pre_rot_x, pmap.x_coords_min))
@@ -41,16 +44,22 @@ def test_PixelMapIMS_rotate(spot_list_data):
     assert np.any(np.not_equal(pre_rot_x, pmap.x_coords_min))
 
 
-def test_PixelMapIMS_delete_roi(spot_list_data):
-    pmap = PixelMapIMS(spot_list_data)
+def test_PixelMapIMS_delete_roi():
+    HERE = os.path.dirname(__file__)
+    data_fp = Path(HERE) / "_test_data" / "bruker_spotlist.txt"
+
+    pmap = PixelMapIMS(data_fp)
     pre_delete_no_regions = len(np.unique(pmap.regions))
     pmap.delete_roi(2)
 
     assert len(np.unique(pmap.regions)) < pre_delete_no_regions
 
 
-def test_PixelMapIMS_prepare_meta(spot_list_data):
-    pmap = PixelMapIMS(spot_list_data)
+def test_PixelMapIMS_prepare_meta():
+    HERE = os.path.dirname(__file__)
+    data_fp = Path(HERE) / "_test_data" / "bruker_spotlist.txt"
+
+    pmap = PixelMapIMS(data_fp)
     meta_dict = pmap.prepare_pmap_metadata()
     pmap_df = pmap.prepare_pmap_dataframe()
     df_cols = [
@@ -67,8 +76,11 @@ def test_PixelMapIMS_prepare_meta(spot_list_data):
     assert np.all(pmap_df.columns == df_cols)
 
 
-def test_PixelMapIMS_change_padding(spot_list_data):
-    pmap = PixelMapIMS(spot_list_data)
+def test_PixelMapIMS_change_padding():
+    HERE = os.path.dirname(__file__)
+    data_fp = Path(HERE) / "_test_data" / "bruker_spotlist.txt"
+
+    pmap = PixelMapIMS(data_fp)
     pmap.ims_res = 20
     pad_image_shape = pmap.pixelmap_padded.shape
     pmap.padding = {"x_left": 10, "x_right": 20, "y_top": 30, "y_bottom": 40}
