@@ -8,7 +8,6 @@ from qtpy.QtWidgets import (
     QFrame,
     QCheckBox,
     QPushButton,
-    QGroupBox,
 )
 from qtpy.QtGui import QIntValidator, QFont
 from qtpy.QtCore import Qt
