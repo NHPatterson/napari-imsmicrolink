@@ -25,7 +25,7 @@ class AddIMSWidget(QWidget):
         self.info_grid.setLayout(QFormLayout())
 
         self.res_info_label = QLabel()
-        self.res_info_label.setText("Imaging MS resolution (µm):")
+        self.res_info_label.setText("Imaging MS spacing (µm):")
 
         self.res_info_input = QLineEdit()
         self.res_info_input.setValidator(QDoubleValidator())
