@@ -14,7 +14,3 @@
 #     assert imsml.viewer.layers["IMS Pixel Map"]
 #     assert imsml.viewer.layers["IMS Fiducials"]
 #     assert imsml.viewer.layers["IMS ROIs"]
-
-
-
-
