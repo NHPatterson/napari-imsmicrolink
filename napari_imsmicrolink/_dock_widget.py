@@ -9,6 +9,7 @@ import SimpleITK as sitk
 from napari_plugin_engine import napari_hook_implementation
 import napari
 from napari.qt.threading import thread_worker
+from napari.utils import progress
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QErrorMessage
 from qtpy.QtCore import QTimer
 
@@ -339,8 +340,10 @@ class IMSMicroLink(QWidget):
 
     @thread_worker
     def _process_micro_data(self, file_path: str) -> Tuple[MicroRegImage, np.ndarray]:
+
         microscopy_image = MicroRegImage(file_path)
         dask_im = microscopy_image.pyr_levels_dask[1]
+
         micro_data = []
         for i in range(dask_im.shape[0]):
             im = sitk.GetImageFromArray(dask_im[i, :, :].compute())
@@ -349,9 +352,11 @@ class IMSMicroLink(QWidget):
             micro_data.append(im)
 
         micro_data = np.stack(micro_data)
+
         return microscopy_image, micro_data
 
     def _add_micro_data(self, data: Tuple[MicroRegImage, np.ndarray]) -> None:
+
         self.microscopy_image = data[0]
         file_path = self.microscopy_image.image_filepath
         fp_name = Path(file_path).name
@@ -389,9 +394,15 @@ class IMSMicroLink(QWidget):
                 file_types="All Files (*);;Tiff files (*.tiff,*.tif);;czi files (*.czi)",
             )
         if file_path:
+            pbr = progress(total=0)
+            pbr.set_description("reading microscopy image")
             micro_reader_worker = self._process_micro_data(file_path)
             micro_reader_worker.returned.connect(self._add_micro_data)
             micro_reader_worker.start()
+            micro_reader_worker.finished.connect(
+                lambda: pbr.set_description("finished reading microscopy image")
+            )
+            micro_reader_worker.finished.connect(pbr.close_pbar)
 
     def _check_for_tforms(self) -> None:
         if self.image_transformer.affine_transform:
@@ -774,12 +785,18 @@ class IMSMicroLink(QWidget):
         project_data = self._get_save_info()
 
         if project_data:
+            pbr = progress(total=0)
+            pbr.set_description(f"Saving '{project_data.project_name}' project data")
             save_worker = self._write_data(
                 project_data.project_name,
                 project_data.output_dir,
                 project_data.output_filetype,
             )
             save_worker.start()
+            save_worker.finished.connect(
+                lambda: pbr.set_description("Finished saving data")
+            )
+            save_worker.finished.connect(pbr.close_pbar)
             return
         else:
             error_message = QErrorMessage(self)
