@@ -150,9 +150,10 @@ class PixelMapIMS:
                 np.asarray(coordinates, dtype=np.int32),
             ]
         )
+
         regions, x, y = rxy[:, 0], rxy[:, 1], rxy[:, 2]
 
-        if infer_regions is True:
+        if infer_regions:
             pix_map_arr = np.zeros((np.max(y) + 1, np.max(x) + 1), dtype=np.uint8)
             pix_map_arr[y, x] = 255
             n_cc, cc = cv2.connectedComponents(pix_map_arr)
@@ -330,8 +331,13 @@ class PixelMapIMS:
             contours = [contours[np.argmax([cnt.shape[0] for cnt in contours])]]
 
         epsilon = percent_arc_length * cv2.arcLength(contours[0], True)
+
         if len(contours[0]) > 1000:
             contours = cv2.approxPolyDP(contours[0], epsilon, True)
+        elif len(contours[0]) == 1:
+            ct1 = contours[0]
+            ct2 = ct1 + 1
+            contours = np.vstack([ct1, ct2])
 
         return np.squeeze(contours)[:, [1, 0]]
 
@@ -358,6 +364,12 @@ class PixelMapIMS:
         pix_map_arr = np.zeros((y_extent, x_extent), dtype=np.uint8)
 
         pix_map_arr[y_coords, x_coords] = region_indices + 1
+
+        for region_name, roi in zip(region_names, np.unique(region_indices)):
+            try:
+                (region_name, self._approximate_roi(pix_map_arr, roi + 1))
+            except:
+                break
 
         ims_rois = [
             (region_name, self._approximate_roi(pix_map_arr, roi + 1))

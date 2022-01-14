@@ -221,7 +221,7 @@ class IMSMicroLink(QWidget):
 
         face_colors = []
         for i in range(len(shape_names)):
-            if i > len(COLOR_HEXES):
+            if i > len(COLOR_HEXES) - 2:
                 idx = np.random.randint(0, len(COLOR_HEXES) - 1)
                 face_colors.append(COLOR_HEXES[idx])
             else:
