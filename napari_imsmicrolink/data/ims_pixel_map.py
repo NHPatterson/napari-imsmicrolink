@@ -6,7 +6,9 @@ from numpy.typing import NDArray
 import pandas as pd
 import cv2
 from lxml import etree
+import h5py
 from napari_imsmicrolink.utils.points import apply_rotmat_points
+from napari_imsmicrolink.utils.ims_coords import parse_tsf_coordinates
 
 
 class PixelMapIMS:
@@ -109,19 +111,15 @@ class PixelMapIMS:
 
         return regions, x, y
 
-    def _read_tsf_rxy(self, data_fp):
-        # sqlite_db = sqlite3.connect(data_fp)
-        #
-        # c = sqlite_db.cursor()
-        #
-        # c.execute("SELECT RegionNumber, XIndexPos, YIndexPos FROM Spectra")
-        #
-        # rxy = np.array(c.fetchall())
-        #
-        # regions, x, y = rxy[:, 0], rxy[:, 1], rxy[:, 2]
+    def _read_h5(self, data_fp):
+        with h5py.File(data_fp) as f:
+            regions, x, y = (
+                np.asarray(f["region"]),
+                np.asarray(f["x"]),
+                np.asarray(f["y"]),
+            )
 
-        # return regions, x, y
-        return
+        return regions, x, y
 
     def _read_imzml_rxy(
         self, data_fp: str, infer_regions: bool = True
@@ -219,6 +217,12 @@ class PixelMapIMS:
 
         elif Path(data).suffix.lower() == ".imzml":
             regions, x, y = self._read_imzml_rxy(str(data), infer_regions=infer_regions)
+
+        elif Path(data).suffix.lower() == ".h5":
+            regions, x, y = self._read_h5(str(data))
+
+        elif Path(data).suffix.lower() == ".tsf":
+            regions, x, y = parse_tsf_coordinates(str(data))
 
         elif Path(data).suffix.lower() == ".csv":
             (
