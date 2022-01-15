@@ -11,4 +11,6 @@ SimpleITK
 pandas
 h5py
 opencv-python
+czifile
+imagecodecs
 
