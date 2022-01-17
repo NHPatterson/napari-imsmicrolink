@@ -37,6 +37,9 @@ class TiffFileRegImage:
         d_image = self.get_dask_pyr()
         if isinstance(d_image, list):
             self.pyr_levels_dask = {1: d_image[0]}
+        else:
+            self.pyr_levels_dask = {1: d_image}
+
         self.base_layer_idx = 0
 
     def get_dask_pyr(self):
@@ -61,11 +64,18 @@ class TiffFileRegImage:
                 self.largest_series,
             )[0]
         else:
-            warnings.warn(
-                "Unable to parse pixel resolution information from file"
-                " defaulting to 1"
-            )
-            return 1.0
+            try:
+                return tifftag_xy_pixel_sizes(
+                    self.tf,
+                    self.largest_series,
+                    0,
+                )[0]
+            except KeyError:
+                warnings.warn(
+                    "Unable to parse pixel resolution information from file"
+                    " defaulting to 1"
+                )
+                return 1.0
 
     def _get_ch_names(self):
         if self.tf.ome_metadata:
@@ -101,3 +111,8 @@ class TiffFileRegImage:
             channel_idx = 0
         image = tf_zarr_read_single_ch(self.image_filepath, channel_idx, self.is_rgb)
         return image
+
+
+self = TiffFileRegImage(
+    "/Users/nhp/db/Dropbox (VU Basic Sciences)/benchmark/s04_bmark_mb_50um_AF_paq.tif"
+)

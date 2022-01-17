@@ -46,6 +46,10 @@ class OmeTiffWriter:
         self.microscopy_image: Union[MicroRegImage, CziRegImage] = microscopy_image
         self.image_series_idx: int = self.microscopy_image.base_layer_idx
         self.dask_im: da.Array = self.microscopy_image.pyr_levels_dask[1]
+        if len(self.dask_im.shape) < 3:
+            self.dask_im = self.dask_im.reshape(
+                (1, self.dask_im.shape[0], self.dask_im.shape[1])
+            )
         self.n_ch: int = self.dask_im.shape[0]
         self.image_name: str = image_name
         self.image_transform: sitk.AffineTransform = image_transform
@@ -137,6 +141,8 @@ class OmeTiffWriter:
         subifds = n_pyr_levels - 1
 
         compression = "jpeg" if self.microscopy_image.is_rgb else "deflate"
+        if self.dask_im.shape == 1:
+            self.dask_im
         with TiffWriter(output_file_name, bigtiff=True) as tif:
             rgb_stores = []
             for channel_idx in range(self.microscopy_image.n_ch):

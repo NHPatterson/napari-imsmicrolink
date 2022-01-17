@@ -324,6 +324,7 @@ class IMSMicroLink(QWidget):
                 self._tform_c.tform_ctl.tform_error.setStyleSheet("color: red")
 
     def _get_source_pts(self, _) -> None:
+
         self._tform_c.tform_ctl.pt_table.add_point_data(
             self.viewer.layers["Microscopy Fiducials"].data,
             ims_or_micro="micro",
@@ -372,19 +373,37 @@ class IMSMicroLink(QWidget):
     ) -> None:
 
         self.microscopy_image = data[0]
+        if self.microscopy_image.is_rgb:
+            c_axis = None
+        else:
+            if isinstance(data[1], list):
+                d = data[1][0]
+            else:
+                d = data[1]
+
+            if len(d.shape) > 2:
+                c_axis = 0
+            else:
+                c_axis = None
+
+        if self.microscopy_image.is_rgb:
+            cnames = self.microscopy_image.cnames[0]
+        elif not c_axis:
+            cnames = self.microscopy_image.cnames[0]
+        else:
+            cnames = self.microscopy_image.cnames
+
         file_path = self.microscopy_image.image_filepath
         fp_name = Path(file_path).name
         fp_name_full = Path(file_path).as_posix()
         self.viewer.add_image(
             data[1],
-            name=self.microscopy_image.cnames[0]
-            if self.microscopy_image.is_rgb
-            else self.microscopy_image.cnames,
+            name=cnames,
             scale=(
                 self.microscopy_image.base_layer_pixel_res,
                 self.microscopy_image.base_layer_pixel_res,
             ),
-            channel_axis=None if self.microscopy_image.is_rgb else 0,
+            channel_axis=c_axis,
         )
 
         self._update_output_spacing(self.microscopy_image.base_layer_pixel_res)
@@ -851,7 +870,16 @@ class IMSMicroLink(QWidget):
 
     def _rotate_modality(self, modality: str, angle: Union[int, float]):
         if modality == "microscopy" and self.microscopy_image:
-            image_size = self.viewer.layers[self.micro_image_names[0]].data.shape
+            if isinstance(self.viewer.layers[self.micro_image_names[0]].data, list):
+                image_size = self.viewer.layers[self.micro_image_names[0]].data[0].shape
+            else:
+                image_size = self.viewer.layers[self.micro_image_names[0]].data.shape
+
+            if self.microscopy_image.is_rgb:
+                image_size = image_size[:2]
+            else:
+                image_size = image_size[1:]
+
             image_spacing = self.viewer.layers[self.micro_image_names[0]].scale
             cum_angle = angle + self._micro_rot
             if cum_angle > 360:
@@ -861,6 +889,8 @@ class IMSMicroLink(QWidget):
             )
             for micro_im in self.micro_image_names:
                 self.viewer.layers[micro_im].affine = microscopy_transform
+            self.viewer.layers["Microscopy Fiducials"].affine = microscopy_transform
+            self._current_microscopy_transform = microscopy_transform
             self._micro_rot += angle
 
         if modality == "ims" and self.ims_pixel_map:
@@ -882,6 +912,8 @@ class IMSMicroLink(QWidget):
             shape_data, *_ = self._generate_ims_rois()
             self._pad_shapes()
             self._ims_rot += angle
+            self._update_output_size()
+
         return
 
     def _ims_res_timing(self) -> None:
