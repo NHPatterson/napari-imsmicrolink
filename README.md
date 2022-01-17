@@ -22,13 +22,16 @@ You can install `napari-imsmicrolink` via [pip]:
 
 ### Typical experiment workflow
 1. Acquire pre-IMS microscopy (autofluorescence, brightfield) - _optional_
-2. Perform normal IMS sample preparation
+2. Perform normal IMS sample preparation.
 3. Acquire post-IMS microscopy (autofluorescence, brightfield) with matrix still on sample
-that reveals laser ablation marks
+that reveals laser ablation marks.
+
 4. Gather IMS data that contains XY integer coordinates for the IMS experiment
    (.imzML, Bruker spotlist (.txt, .csv), Bruker peaks.sqlite (_FTICR_),
    Bruker .tsf (TIMS qTOF only))
+
 5. Run `napari-imsmicrolink` with data 3 and 4
+
 6. Once registered, use `wsireg` to align other microscopy modalities to IMS-registered post-IMS
 microscopy
 
