@@ -35,9 +35,8 @@ def generate_ome(image_name, pixel_metadata: dict, channel_meta_list: list):
         )
     )
 
-    if not pixel_metadata.get("Interleaved"):
-        for idx, ch in enumerate(channel_meta_list):
-            ch.update({"id": f"Channel:{idx}"})
-            ome.images[0].pixels.channels.append(Channel(**ch))
+    for idx, ch in enumerate(channel_meta_list):
+        ch.update({"id": f"Channel:{idx}"})
+        ome.images[0].pixels.channels.append(Channel(**ch))
 
     return ome
