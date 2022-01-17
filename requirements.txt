@@ -4,6 +4,7 @@
 
 numpy
 dask
+zarr
 qtpy
 aicsimageio[bioformats]
 bioformats_jar

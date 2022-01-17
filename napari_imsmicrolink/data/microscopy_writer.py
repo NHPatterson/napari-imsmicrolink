@@ -2,12 +2,18 @@ from typing import Union, Tuple
 from pathlib import Path
 import numpy as np
 import dask.array as da
+import zarr.storage
 from tifffile import TiffWriter
 import cv2
 import SimpleITK as sitk
+import zarr
 from napari_imsmicrolink.data.microscopy_reader import MicroRegImage
 from napari_imsmicrolink.data.czi_reader import CziRegImage
-from napari_imsmicrolink.utils.image import get_pyramid_info
+from napari_imsmicrolink.utils.image import (
+    get_pyramid_info,
+    yield_tiles,
+    compute_sub_res,
+)
 from napari_imsmicrolink.utils.ome import generate_ome
 
 PathLike = Union[str, Path]
@@ -45,7 +51,7 @@ class OmeTiffWriter:
         self.image_transform: sitk.AffineTransform = image_transform
         self.output_size: Tuple[int, int] = output_size
         self.output_spacing: Tuple[float, float] = output_spacing
-        self.is_rgb: bool = False
+        self.is_rgb: bool = self.microscopy_image.is_rgb
         self.tile_size: int = tile_size
         self.output_dir: PathLike = output_dir
 
@@ -92,35 +98,53 @@ class OmeTiffWriter:
             self.microscopy_image.ome_metadata.images[0].name = output_file_name.name
 
         except AttributeError:
+
+            def get_n_ch_mc(shape):
+                if len(shape) == 2:
+                    return 1
+                else:
+                    return shape[0]
+
+            size_c = (
+                self.dask_im.shape[-1]
+                if self.microscopy_image.is_rgb
+                else get_n_ch_mc(self.dask_im.shape)
+            )
             pixel_metadata = {
                 "size_t": 1,
                 "size_z": 1,
                 "size_x": self.output_size[0],
                 "size_y": self.output_size[1],
-                "size_c": self.dask_im.shape[0],
+                "size_c": size_c,
                 "dimension_order": "XYCZT",
                 "type": NP_DTYPES_TO_OME[self.microscopy_image.im_dtype],
-                "physical_size_x": 0.65,
-                "physical_size_y": 0.65,
+                "physical_size_x": self.output_spacing[0],
+                "physical_size_y": self.output_spacing[1],
+                "interleaved": self.is_rgb,
             }
-
+            spp = self.dask_im.shape[-1] if self.microscopy_image.is_rgb else 1
+            if self.microscopy_image.ccolors:
+                ccolors = self.microscopy_image.ccolors
+            else:
+                ccolors = [-1 for _ in range(self.microscopy_image.n_ch)]
             channel_meta_list = [
-                {"name": cn, "SamplesPerPixel": 1, "color": cc}
-                for cn, cc in zip(
-                    self.microscopy_image.cnames, self.microscopy_image.ccolors
-                )
+                {"name": cn, "SamplesPerPixel": spp, "color": cc}
+                for cn, cc in zip(self.microscopy_image.cnames, ccolors)
             ]
             ome = generate_ome(self.image_name, pixel_metadata, channel_meta_list)
             omexml = ome.to_xml().encode("utf-8")
 
         subifds = n_pyr_levels - 1
 
-        # compression = "jpeg" if self.reg_image.is_rgb else "deflate"
-        compression = "deflate"
-
+        compression = "jpeg" if self.microscopy_image.is_rgb else "deflate"
         with TiffWriter(output_file_name, bigtiff=True) as tif:
-            for channel_idx in range(self.n_ch):
-                image = self.dask_im[channel_idx, :, :].compute()
+            rgb_stores = []
+            for channel_idx in range(self.microscopy_image.n_ch):
+                if self.microscopy_image.is_rgb:
+                    image = self.dask_im[:, :, channel_idx].compute()
+                else:
+                    image = self.dask_im[channel_idx, :, :].compute()
+
                 image = np.squeeze(image)
                 image = sitk.GetImageFromArray(image)
                 image.SetSpacing(self.output_spacing)
@@ -129,9 +153,6 @@ class OmeTiffWriter:
                     image, self.image_transform, self.output_size, self.output_spacing
                 )
 
-                # if self.is_rgb:
-                #     rgb_im_data.append(image)
-                # else:
                 if isinstance(image, sitk.Image):
                     image = sitk.GetArrayFromImage(image)
 
@@ -141,60 +162,95 @@ class OmeTiffWriter:
                     photometric="rgb" if self.is_rgb else "minisblack",
                     metadata=None,
                 )
-                # write OME-XML to the ImageDescription tag of the first page
-                description = omexml if channel_idx == 0 else None
-                # write channel data
-                print(f" writing channel {channel_idx} - shape: {image.shape}")
-                tif.write(
-                    image,
-                    subifds=subifds,
-                    description=description,
-                    **options,
-                )
 
-                for pyr_idx in range(1, n_pyr_levels):
-                    resize_shape = (
-                        pyr_levels[pyr_idx][0],
-                        pyr_levels[pyr_idx][1],
-                    )
-                    image = cv2.resize(
+                if not self.is_rgb:
+                    # write OME-XML to the ImageDescription tag of the first page
+                    description = omexml if channel_idx == 0 else None
+                    # write channel data
+                    print(f" writing channel {channel_idx} - shape: {image.shape}")
+                    tif.write(
                         image,
-                        resize_shape,
-                        cv2.INTER_LINEAR,
+                        subifds=subifds,
+                        description=description,
+                        **options,
                     )
-                    tif.write(image, **options, subfiletype=1)
-            #
-            # if self.reg_image.is_rgb:
-            #     rgb_im_data = sitk.Compose(rgb_im_data)
-            #     rgb_im_data = sitk.GetArrayFromImage(rgb_im_data)
-            #
-            #     options = dict(
-            #         tile=(self.tile_size, self.tile_size),
-            #         compression=self.compression,
-            #         photometric="rgb",
-            #         metadata=None,
-            #     )
-            #     # write OME-XML to the ImageDescription tag of the first page
-            #     description = self.omexml
-            #
-            #     # write channel data
-            #     tif.write(
-            #         rgb_im_data,
-            #         subifds=self.subifds,
-            #         description=description,
-            #         **options,
-            #     )
-            #
-            #     print(f"RGB shape: {rgb_im_data.shape}")
-            #     if write_pyramid:
-            #         for pyr_idx in range(1, self.n_pyr_levels):
-            #             resize_shape = (
-            #                 self.pyr_levels[pyr_idx][0],
-            #                 self.pyr_levels[pyr_idx][1],
-            #             )
-            #             rgb_im_data = cv2.resize(
-            #                 rgb_im_data,
-            #                 resize_shape,
-            #                 cv2.INTER_LINEAR,
-            #             )
-            #             tif.write(rgb_im_data, **options, subfiletype=1)
+
+                    for pyr_idx in range(1, n_pyr_levels):
+                        resize_shape = (
+                            pyr_levels[pyr_idx][0],
+                            pyr_levels[pyr_idx][1],
+                        )
+                        image = cv2.resize(
+                            image,
+                            resize_shape,
+                            cv2.INTER_LINEAR,
+                        )
+                        tif.write(image, **options, subfiletype=1)
+
+                elif channel_idx < self.microscopy_image.n_ch:
+                    print(channel_idx)
+                    rgb_temp_store = zarr.storage.TempStore()
+                    root = zarr.open_group(rgb_temp_store, mode="a")
+                    chunking = (512, 512)
+                    out = root.create_dataset(
+                        0,
+                        shape=tuple(np.asarray(self.output_size)[::-1]),
+                        chunks=chunking,
+                        dtype=self.microscopy_image.im_dtype,
+                        overwrite=True,
+                    )
+                    out[:] = image
+                    rgb_stores.append(rgb_temp_store)
+
+                    if channel_idx == self.microscopy_image.n_ch - 1:
+                        rgb_stack = []
+                        for z in rgb_stores:
+                            rgb_stack.append(da.from_zarr(zarr.open(z)[0]))
+
+                        rgb_interleaved = da.stack(rgb_stack, axis=2)
+                        yx_shape = rgb_interleaved.shape[:2]
+                        ds = 1
+                        while np.min(yx_shape) // 2 ** ds >= 512:
+                            ds += 1
+
+                        # write rgb to ome.tiff file
+                        sub_resolutions = []
+                        for ds_factor in range(1, ds):
+                            sub_res_image = compute_sub_res(
+                                rgb_interleaved,
+                                ds_factor,
+                                512,
+                                self.microscopy_image.is_rgb,
+                                self.microscopy_image.im_dtype,
+                            )
+                            sub_resolutions.append(sub_res_image)
+
+                        # write OME-XML to the ImageDescription tag of the first page
+                        description = omexml
+                        tiles = yield_tiles(rgb_interleaved, 512, True)
+
+                        # write channel data
+                        tif.write(
+                            tiles,
+                            subifds=subifds,
+                            description=description,
+                            shape=rgb_interleaved.shape,
+                            dtype=self.microscopy_image.im_dtype,
+                            **options,
+                        )
+
+                        for sr in sub_resolutions:
+                            tiles = yield_tiles(sr, 512, True)
+                            tif.write(
+                                tiles,
+                                shape=sr.shape,
+                                dtype=self.microscopy_image.im_dtype,
+                                **options,
+                                subfiletype=1,
+                            )
+
+                        for store in rgb_stores:
+                            try:
+                                store.clear()
+                            except FileNotFoundError:
+                                continue

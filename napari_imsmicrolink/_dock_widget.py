@@ -25,13 +25,15 @@ from napari_imsmicrolink.data import (
     PixelMapIMS,
     MicroRegImage,
     CziRegImage,
+    TiffFileRegImage,
+    TIFFFILE_EXTS,
     OmeTiffWriter,
     ImageTransform,
 )
 
 from napari_imsmicrolink.utils.file import open_file_dialog, _generate_ims_fp_info
 from napari_imsmicrolink.utils.color import COLOR_HEXES
-from napari_imsmicrolink.utils.image import centered_transform
+from napari_imsmicrolink.utils.image import centered_transform, grayscale
 from napari_imsmicrolink.utils.coords import pmap_coords_to_h5
 
 
@@ -345,17 +347,23 @@ class IMSMicroLink(QWidget):
         if Path(file_path).suffix.lower() == ".czi":
             microscopy_image = CziRegImage(file_path)
             micro_data = microscopy_image.get_dask_pyr()
+        elif Path(file_path).suffix.lower() in TIFFFILE_EXTS:
+            microscopy_image = TiffFileRegImage(file_path)
+            micro_data = microscopy_image.get_dask_pyr()
         else:
             microscopy_image = MicroRegImage(file_path)
             dask_im = microscopy_image.pyr_levels_dask[1]
-            micro_data = []
-            for i in range(dask_im.shape[0]):
-                im = sitk.GetImageFromArray(dask_im[i, :, :].compute())
-                im = sitk.RescaleIntensity(im)
-                im = sitk.GetArrayFromImage(im)
-                micro_data.append(im)
+            if microscopy_image.is_rgb:
+                micro_data = grayscale(dask_im)
+            else:
+                micro_data = []
+                for i in range(dask_im.shape[0]):
+                    im = sitk.GetImageFromArray(dask_im[i, :, :].compute())
+                    im = sitk.RescaleIntensity(im)
+                    im = sitk.GetArrayFromImage(im)
+                    micro_data.append(im)
 
-            micro_data = np.stack(micro_data)
+                micro_data = np.stack(micro_data)
 
         return microscopy_image, micro_data
 
@@ -369,12 +377,14 @@ class IMSMicroLink(QWidget):
         fp_name_full = Path(file_path).as_posix()
         self.viewer.add_image(
             data[1],
-            name=self.microscopy_image.cnames,
+            name=self.microscopy_image.cnames[0]
+            if self.microscopy_image.is_rgb
+            else self.microscopy_image.cnames,
             scale=(
                 self.microscopy_image.base_layer_pixel_res,
                 self.microscopy_image.base_layer_pixel_res,
             ),
-            channel_axis=0,
+            channel_axis=None if self.microscopy_image.is_rgb else 0,
         )
 
         self._update_output_spacing(self.microscopy_image.base_layer_pixel_res)
