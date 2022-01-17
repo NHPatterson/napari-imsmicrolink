@@ -8,6 +8,8 @@ import dask.array as da
 import zarr
 import cv2
 
+from napari_imsmicrolink.utils.image import compute_sub_res
+
 
 class CziRegImageReader(CziFile):
     """
@@ -326,23 +328,3 @@ def czi_tile_grayscale(rgb_image):
     )
 
     return np.expand_dims(result, axis=-1)
-
-
-def compute_sub_res(zarray, ds_factor, tile_size, is_rgb, im_dtype):
-    if is_rgb:
-        resampling_axis = {1: 2 ** ds_factor, 1: 2 ** ds_factor, 2: 1}
-        tiling = (tile_size, tile_size, 3)
-    else:
-        resampling_axis = {0: 1, 1: 2 ** ds_factor, 2: 2 ** ds_factor}
-        tiling = (1, tile_size, tile_size)
-
-    resampled_zarray_subres = da.coarsen(
-        np.mean,
-        zarray,
-        resampling_axis,
-        trim_excess=True,
-    )
-    resampled_zarray_subres = resampled_zarray_subres.astype(im_dtype)
-    resampled_zarray_subres = resampled_zarray_subres.rechunk(tiling)
-
-    return resampled_zarray_subres

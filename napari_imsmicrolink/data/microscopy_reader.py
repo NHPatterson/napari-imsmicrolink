@@ -9,6 +9,7 @@ import numpy as np
 import dask.array as da
 from aicsimageio.readers.bioformats_reader import BioFile
 from ome_types import OME
+from napari_imsmicrolink.utils.image import guess_rgb
 
 PathLike = Union[str, Path]
 
@@ -25,6 +26,7 @@ class MicroRegImage:
         self.pyr_levels_dask: Dict[int, da.Array] = dict()
         self._find_pyramid()
         self._get_base_metadata()
+        self.is_rgb = guess_rgb(self.pyr_levels_dask[1].shape)
 
     def _find_pyramid(self) -> None:
         yx_shapes = []
@@ -54,7 +56,12 @@ class MicroRegImage:
                 pyramid_consistent = np.where(np.asarray(dim_size_comparison) < 0.5)[0]
 
             for pyr_idx in pyramid_consistent:
-                with BioFile(self.image_filepath, pyr_idx, dask_tiles=False) as bf:
+                with BioFile(
+                    self.image_filepath,
+                    pyr_idx,
+                    dask_tiles=False,
+                    tile_size=(4096, 4096),
+                ) as bf:
                     dask_im = da.squeeze(bf.to_dask())
                     if len(dask_im.shape) != 3:
                         dask_im = dask_im.reshape(
