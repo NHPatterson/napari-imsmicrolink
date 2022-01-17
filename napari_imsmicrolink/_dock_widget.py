@@ -439,7 +439,7 @@ class IMSMicroLink(QWidget):
             micro_reader_worker.finished.connect(
                 lambda: pbr.set_description("finished reading microscopy image")
             )
-            micro_reader_worker.finished.connect(pbr.close_pbar)
+            micro_reader_worker.finished.connect(pbr.close)
 
     def _check_for_tforms(self) -> None:
         if self.image_transformer.affine_transform:
@@ -648,7 +648,7 @@ class IMSMicroLink(QWidget):
 
     def _get_save_info(self):
         d = SavePopUp.show_dialog(
-            self.viewer.window.qt_viewer, parent=self.viewer.window._qt_window
+            self, parent=self
         )
 
         if d.completed:
@@ -833,7 +833,7 @@ class IMSMicroLink(QWidget):
             save_worker.finished.connect(
                 lambda: pbr.set_description("Finished saving data")
             )
-            save_worker.finished.connect(pbr.close_pbar)
+            save_worker.finished.connect(pbr.close)
             return
         else:
             error_message = QErrorMessage(self)
