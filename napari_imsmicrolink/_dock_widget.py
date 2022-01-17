@@ -107,6 +107,7 @@ class IMSMicroLink(QWidget):
         )
 
         # transform control
+        self._tform_c.tform_ctl.reset_transform.clicked.connect(self.reset_transform)
         self._tform_c.tform_ctl.run_transform.clicked.connect(self.run_transformation)
         self._tform_c.rot_ctl.rot_mi_90cw.clicked.connect(
             lambda: self._rotate_modality("microscopy", -90)
@@ -388,10 +389,11 @@ class IMSMicroLink(QWidget):
 
         if self.microscopy_image.is_rgb:
             cnames = self.microscopy_image.cnames[0]
-        elif not c_axis:
+        elif c_axis is None:
             cnames = self.microscopy_image.cnames[0]
         else:
             cnames = self.microscopy_image.cnames
+
 
         file_path = self.microscopy_image.image_filepath
         fp_name = Path(file_path).name
@@ -890,7 +892,6 @@ class IMSMicroLink(QWidget):
             for micro_im in self.micro_image_names:
                 self.viewer.layers[micro_im].affine = microscopy_transform
             self.viewer.layers["Microscopy Fiducials"].affine = microscopy_transform
-            self._current_microscopy_transform = microscopy_transform
             self._micro_rot += angle
 
         if modality == "ims" and self.ims_pixel_map:
@@ -915,6 +916,12 @@ class IMSMicroLink(QWidget):
             self._update_output_size()
 
         return
+
+    def reset_transform(self) -> None:
+        for micro_im in self.micro_image_names:
+            self.viewer.layers[micro_im].affine = np.eye(3)
+        self.viewer.layers["Microscopy Fiducials"].affine = np.eye(3)
+        self._micro_rot = 0
 
     def _ims_res_timing(self) -> None:
         """Wait until there are no changes for 0.5 second before making changes."""
