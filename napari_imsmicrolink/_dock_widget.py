@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 
 import numpy as np
+import dask.array as da
 import SimpleITK as sitk
 
 from napari_plugin_engine import napari_hook_implementation
@@ -23,6 +24,7 @@ from napari_imsmicrolink.qwidgets import (
 from napari_imsmicrolink.data import (
     PixelMapIMS,
     MicroRegImage,
+    CziRegImage,
     OmeTiffWriter,
     ImageTransform,
 )
@@ -340,22 +342,26 @@ class IMSMicroLink(QWidget):
 
     @thread_worker
     def _process_micro_data(self, file_path: str) -> Tuple[MicroRegImage, np.ndarray]:
+        if Path(file_path).suffix.lower() == ".czi":
+            microscopy_image = CziRegImage(file_path)
+            micro_data = microscopy_image.get_dask_pyr()
+        else:
+            microscopy_image = MicroRegImage(file_path)
+            dask_im = microscopy_image.pyr_levels_dask[1]
+            micro_data = []
+            for i in range(dask_im.shape[0]):
+                im = sitk.GetImageFromArray(dask_im[i, :, :].compute())
+                im = sitk.RescaleIntensity(im)
+                im = sitk.GetArrayFromImage(im)
+                micro_data.append(im)
 
-        microscopy_image = MicroRegImage(file_path)
-        dask_im = microscopy_image.pyr_levels_dask[1]
-
-        micro_data = []
-        for i in range(dask_im.shape[0]):
-            im = sitk.GetImageFromArray(dask_im[i, :, :].compute())
-            im = sitk.RescaleIntensity(im)
-            im = sitk.GetArrayFromImage(im)
-            micro_data.append(im)
-
-        micro_data = np.stack(micro_data)
+            micro_data = np.stack(micro_data)
 
         return microscopy_image, micro_data
 
-    def _add_micro_data(self, data: Tuple[MicroRegImage, np.ndarray]) -> None:
+    def _add_micro_data(
+        self, data: Tuple[MicroRegImage, Union[np.ndarray, List[da.Array]]]
+    ) -> None:
 
         self.microscopy_image = data[0]
         file_path = self.microscopy_image.image_filepath

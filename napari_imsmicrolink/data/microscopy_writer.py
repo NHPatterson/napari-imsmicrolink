@@ -6,15 +6,29 @@ from tifffile import TiffWriter
 import cv2
 import SimpleITK as sitk
 from napari_imsmicrolink.data.microscopy_reader import MicroRegImage
+from napari_imsmicrolink.data.czi_reader import CziRegImage
 from napari_imsmicrolink.utils.image import get_pyramid_info
+from napari_imsmicrolink.utils.ome import generate_ome
 
 PathLike = Union[str, Path]
+
+NP_DTYPES_TO_OME = {
+    np.dtype("uint8"): "uint8",
+    np.dtype("int8"): "int8",
+    np.dtype("uint16"): "uint16",
+    np.dtype("int16"): "int16",
+    np.dtype("uint32"): "uint32",
+    np.dtype("int32"): "int32",
+    np.dtype("float32"): "float",
+    np.dtype("double"): "double",
+    np.dtype("float64"): "double",
+}
 
 
 class OmeTiffWriter:
     def __init__(
         self,
-        microscopy_image: MicroRegImage,
+        microscopy_image: Union[MicroRegImage, CziRegImage],
         image_name: str,
         image_transform: sitk.AffineTransform,
         output_size: Tuple[int, int],
@@ -23,7 +37,7 @@ class OmeTiffWriter:
         output_dir: PathLike = "",
     ):
 
-        self.microscopy_image: MicroRegImage = microscopy_image
+        self.microscopy_image: Union[MicroRegImage, CziRegImage] = microscopy_image
         self.image_series_idx: int = self.microscopy_image.base_layer_idx
         self.dask_im: da.Array = self.microscopy_image.pyr_levels_dask[1]
         self.n_ch: int = self.dask_im.shape[0]
@@ -59,27 +73,50 @@ class OmeTiffWriter:
         )
         n_pyr_levels = len(pyr_levels)
 
-        self.microscopy_image.ome_metadata.images = [
-            self.microscopy_image.ome_metadata.images[self.image_series_idx]
-        ]
+        output_file_name = Path(self.output_dir) / f"{self.image_name}.ome.tiff"
+        try:
+            self.microscopy_image.ome_metadata.images = [
+                self.microscopy_image.ome_metadata.images[self.image_series_idx]
+            ]
+            self.microscopy_image.ome_metadata.images[
+                0
+            ].pixels.size_x = self.output_size[
+                0
+            ]  # type:ignore
+            self.microscopy_image.ome_metadata.images[
+                0
+            ].pixels.size_y = self.output_size[
+                1
+            ]  # type:ignore
+            omexml = self.microscopy_image.ome_metadata.to_xml().encode("utf-8")
+            self.microscopy_image.ome_metadata.images[0].name = output_file_name.name
 
-        self.microscopy_image.ome_metadata.images[0].pixels.size_x = self.output_size[
-            0
-        ]  # type:ignore
-        self.microscopy_image.ome_metadata.images[0].pixels.size_y = self.output_size[
-            1
-        ]  # type:ignore
+        except AttributeError:
+            pixel_metadata = {
+                "size_t": 1,
+                "size_z": 1,
+                "size_x": self.output_size[0],
+                "size_y": self.output_size[1],
+                "size_c": self.dask_im.shape[0],
+                "dimension_order": "XYCZT",
+                "type": NP_DTYPES_TO_OME[self.microscopy_image.im_dtype],
+                "physical_size_x": 0.65,
+                "physical_size_y": 0.65,
+            }
 
-        omexml = self.microscopy_image.ome_metadata.to_xml().encode("utf-8")
+            channel_meta_list = [
+                {"name": cn, "SamplesPerPixel": 1, "color": cc}
+                for cn, cc in zip(
+                    self.microscopy_image.cnames, self.microscopy_image.ccolors
+                )
+            ]
+            ome = generate_ome(self.image_name, pixel_metadata, channel_meta_list)
+            omexml = ome.to_xml().encode("utf-8")
 
         subifds = n_pyr_levels - 1
 
         # compression = "jpeg" if self.reg_image.is_rgb else "deflate"
         compression = "deflate"
-
-        output_file_name = Path(self.output_dir) / f"{self.image_name}.ome.tiff"
-
-        self.microscopy_image.ome_metadata.images[0].name = output_file_name.name
 
         with TiffWriter(output_file_name, bigtiff=True) as tif:
             for channel_idx in range(self.n_ch):
