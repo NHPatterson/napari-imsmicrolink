@@ -1,0 +1,10 @@
+name: napari-imsmicrolink
+schema_version: 0.1.0
+contributions:
+  commands:
+  - id: napari-imsmicrolink.IMSMicroLink
+    title: Create IMS Micro Link
+    python_name: napari_imsmicrolink._dock_widget:IMSMicroLink
+  widgets:
+  - command: napari-imsmicrolink.IMSMicroLink
+    display_name: IMS MicroLink
