@@ -111,8 +111,3 @@ class TiffFileRegImage:
             channel_idx = 0
         image = tf_zarr_read_single_ch(self.image_filepath, channel_idx, self.is_rgb)
         return image
-
-
-self = TiffFileRegImage(
-    "/Users/nhp/db/Dropbox (VU Basic Sciences)/benchmark/s04_bmark_mb_50um_AF_paq.tif"
-)
