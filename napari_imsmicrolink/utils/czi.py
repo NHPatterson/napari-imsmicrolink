@@ -25,7 +25,7 @@ class CziRegImageReader(CziFile):
         channel_idx=None,
         as_uint8=False,
         zarr_fp=None,
-        ds_factor=2,
+        ds_factor=1,
     ):
 
         """Return image data from file(s) as numpy array.
@@ -89,7 +89,7 @@ class CziRegImageReader(CziFile):
             rgb_chunk = self.shape[-1] if self.shape[-1] > 2 else 1
             root = zarr.open_group(zarr_fp, mode="a")
             pyramid_seq = str(int(np.log2(ds_factor)))
-            chunking = (1, 1, 1, 512, 512, rgb_chunk)
+            chunking = (1, 1, 1, 1024, 1024, rgb_chunk)
             out = root.create_dataset(
                 pyramid_seq,
                 shape=tuple(out_shape),
@@ -147,6 +147,7 @@ class CziRegImageReader(CziFile):
             try:
                 out[index] = tile
             except ValueError as e:
+                print("error")
                 error = e
                 corr_shape = (
                     str(error)
@@ -290,7 +291,7 @@ class CziRegImageReader(CziFile):
             ds += 1
 
         self.sub_asarray(
-            zarr_fp=zarr_fp, resize=True, order=0, ds_factor=1, max_workers=1
+            zarr_fp=zarr_fp, resize=True, order=0, ds_factor=1, max_workers=4
         )
         zarray = da.squeeze(da.from_zarr(zarr.open(zarr_fp)[0]))
         dask_pyr.append(da.squeeze(zarray))

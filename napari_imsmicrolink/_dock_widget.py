@@ -394,7 +394,6 @@ class IMSMicroLink(QWidget):
         else:
             cnames = self.microscopy_image.cnames
 
-
         file_path = self.microscopy_image.image_filepath
         fp_name = Path(file_path).name
         fp_name_full = Path(file_path).as_posix()
@@ -647,9 +646,7 @@ class IMSMicroLink(QWidget):
         return
 
     def _get_save_info(self):
-        d = SavePopUp.show_dialog(
-            self, parent=self
-        )
+        d = SavePopUp.show_dialog(self, parent=self)
 
         if d.completed:
             project_data = d.project_data
