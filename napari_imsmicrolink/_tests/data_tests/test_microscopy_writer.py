@@ -2,8 +2,8 @@ import pytest
 from pathlib import Path
 import tempfile
 import numpy as np
-from tifffile import imwrite, imread
-from ome_types import from_tiff
+from tifffile import imwrite, imread, TiffFile
+from ome_types import from_xml
 import SimpleITK as sitk
 from napari_imsmicrolink.data.tifffile_reader import TiffFileRegImage
 from napari_imsmicrolink.data.microscopy_writer import OmeTiffWriter
@@ -29,7 +29,8 @@ def test_OmeTiffWriter_rgb():
 
         writer.write_image()
         im_out_path = Path(tmp_dir) / "test_im.ome.tiff"
-        ome_metadata = from_tiff(im_out_path)
+        with TiffFile(im_out_path).ome_metadata as omexml:
+            ome_metadata = from_xml(omexml)
         image_out = imread(im_out_path)
 
         assert np.array_equal(image_out, rgb_im)
@@ -59,7 +60,8 @@ def test_OmeTiffWriter_mc():
 
         writer.write_image()
         im_out_path = Path(tmp_dir) / "test_im.ome.tiff"
-        ome_metadata = from_tiff(im_out_path)
+        with TiffFile(im_out_path).ome_metadata as omexml:
+            ome_metadata = from_xml(omexml)
         image_out = imread(im_out_path)
 
         assert np.array_equal(image_out, mc_im)
