@@ -29,8 +29,8 @@ def test_OmeTiffWriter_rgb():
 
         writer.write_image()
         im_out_path = Path(tmp_dir) / "test_im.ome.tiff"
-        with TiffFile(im_out_path).ome_metadata as omexml:
-            ome_metadata = from_xml(omexml)
+        with TiffFile(im_out_path) as tf:
+            ome_metadata = from_xml(tf.ome_metadata)
         image_out = imread(im_out_path)
 
         assert np.array_equal(image_out, rgb_im)
@@ -60,8 +60,8 @@ def test_OmeTiffWriter_mc():
 
         writer.write_image()
         im_out_path = Path(tmp_dir) / "test_im.ome.tiff"
-        with TiffFile(im_out_path).ome_metadata as omexml:
-            ome_metadata = from_xml(omexml)
+        with TiffFile(im_out_path) as tf:
+            ome_metadata = from_xml(tf.ome_metadata)
         image_out = imread(im_out_path)
 
         assert np.array_equal(image_out, mc_im)
