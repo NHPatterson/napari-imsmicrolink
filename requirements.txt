@@ -3,8 +3,9 @@
 # See also: https://caremad.io/posts/2013/07/setup-vs-requirement/
 
 numpy
+tifffile
 dask
-zarr
+zarr==2.10.3
 qtpy
 aicsimageio[bioformats]
 bioformats_jar

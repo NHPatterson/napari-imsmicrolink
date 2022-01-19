@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 from pathlib import Path
 import numpy as np
 import dask.array as da
@@ -41,6 +41,7 @@ class OmeTiffWriter:
         output_spacing: Tuple[float, float],
         tile_size: int = 512,
         output_dir: PathLike = "",
+        compression: Optional[str] = None,
     ):
 
         self.microscopy_image: Union[MicroRegImage, CziRegImage] = microscopy_image
@@ -58,6 +59,7 @@ class OmeTiffWriter:
         self.is_rgb: bool = self.microscopy_image.is_rgb
         self.tile_size: int = tile_size
         self.output_dir: PathLike = output_dir
+        self.compression = compression
 
     def _transform_plane(
         self,
@@ -131,8 +133,9 @@ class OmeTiffWriter:
                 ccolors = self.microscopy_image.ccolors
             else:
                 ccolors = [-1 for _ in range(self.microscopy_image.n_ch)]
+
             channel_meta_list = [
-                {"name": cn, "SamplesPerPixel": spp, "color": cc}
+                {"name": cn, "samples_per_pixel": spp, "color": cc}
                 for cn, cc in zip(self.microscopy_image.cnames, ccolors)
             ]
             ome = generate_ome(self.image_name, pixel_metadata, channel_meta_list)
@@ -140,7 +143,10 @@ class OmeTiffWriter:
 
         subifds = n_pyr_levels - 1
 
-        compression = "jpeg" if self.microscopy_image.is_rgb else "deflate"
+        if self.compression:
+            compression = self.compression
+        else:
+            compression = "jpeg" if self.microscopy_image.is_rgb else "deflate"
 
         with TiffWriter(output_file_name, bigtiff=True) as tif:
             rgb_stores = []
@@ -193,7 +199,6 @@ class OmeTiffWriter:
                         tif.write(image, **options, subfiletype=1)
 
                 elif channel_idx < self.microscopy_image.n_ch:
-                    print(channel_idx)
                     rgb_temp_store = zarr.storage.TempStore()
                     root = zarr.open_group(rgb_temp_store, mode="a")
                     chunking = (512, 512)
@@ -213,6 +218,7 @@ class OmeTiffWriter:
                             rgb_stack.append(da.from_zarr(zarr.open(z)[0]))
 
                         rgb_interleaved = da.stack(rgb_stack, axis=2)
+
                         yx_shape = rgb_interleaved.shape[:2]
                         ds = 1
                         while np.min(yx_shape) // 2 ** ds >= 512:
@@ -230,6 +236,8 @@ class OmeTiffWriter:
                             )
                             sub_resolutions.append(sub_res_image)
 
+                        subifds = len(sub_resolutions)
+
                         # write OME-XML to the ImageDescription tag of the first page
                         description = omexml
                         tiles = yield_tiles(rgb_interleaved, 512, True)
@@ -245,9 +253,9 @@ class OmeTiffWriter:
                         )
 
                         for sr in sub_resolutions:
-                            tiles = yield_tiles(sr, 512, True)
+                            sr_tiles = yield_tiles(sr, 512, True)
                             tif.write(
-                                tiles,
+                                sr_tiles,
                                 shape=sr.shape,
                                 dtype=self.microscopy_image.im_dtype,
                                 **options,
