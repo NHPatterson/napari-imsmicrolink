@@ -1,6 +1,5 @@
 import pytest
 from pathlib import Path
-import tempfile
 import numpy as np
 from tifffile import imwrite, imread, TiffFile
 from ome_types import from_xml
