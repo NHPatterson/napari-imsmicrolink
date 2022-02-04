@@ -4,7 +4,6 @@ import numpy as np
 import zarr
 import dask.array as da
 import SimpleITK as sitk
-from dask import array as da
 from tifffile import TiffFile, imread, xml2dict
 
 
@@ -383,10 +382,10 @@ def yield_tiles(z, tile_size, is_rgb):
 
 def compute_sub_res(zarray, ds_factor, tile_size, is_rgb, im_dtype):
     if is_rgb:
-        resampling_axis = {0: 2 ** ds_factor, 1: 2 ** ds_factor, 2: 1}
+        resampling_axis = {0: 2**ds_factor, 1: 2**ds_factor, 2: 1}
         tiling = (tile_size, tile_size, 3)
     else:
-        resampling_axis = {0: 1, 1: 2 ** ds_factor, 2: 2 ** ds_factor}
+        resampling_axis = {0: 1, 1: 2**ds_factor, 2: 2**ds_factor}
         tiling = (1, tile_size, tile_size)
 
     resampled_zarray_subres = da.coarsen(

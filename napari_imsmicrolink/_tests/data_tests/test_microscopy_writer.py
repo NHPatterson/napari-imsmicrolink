@@ -1,12 +1,12 @@
 import pytest
 from pathlib import Path
-import tempfile
 import numpy as np
 from tifffile import imwrite, imread, TiffFile
 from ome_types import from_xml
 import SimpleITK as sitk
 from napari_imsmicrolink.data.tifffile_reader import TiffFileRegImage
 from napari_imsmicrolink.data.microscopy_writer import OmeTiffWriter
+
 
 @pytest.fixture(scope="session")
 def data_out_dir(tmpdir_factory):
@@ -43,6 +43,7 @@ def test_OmeTiffWriter_rgb(data_out_dir):
     assert ome_metadata.images[0].pixels.size_c == 3
     assert ome_metadata.images[0].pixels.size_y == 2048
     assert ome_metadata.images[0].pixels.size_x == 2048
+
 
 def test_OmeTiffWriter_mc(data_out_dir):
     out_fp = Path(data_out_dir) / "test_rgb.tiff"

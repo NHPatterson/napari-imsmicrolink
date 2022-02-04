@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 import SimpleITK as sitk
 from napari_imsmicrolink.data.image_transform import ImageTransform

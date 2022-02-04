@@ -368,7 +368,7 @@ class PixelMapIMS:
         for region_name, roi in zip(region_names, np.unique(region_indices)):
             try:
                 (region_name, self._approximate_roi(pix_map_arr, roi + 1))
-            except:
+            except:  # noqa: E722
                 break
 
         ims_rois = [

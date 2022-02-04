@@ -178,8 +178,8 @@ latex_documents = [
     (
         master_doc,
         "napari-cookiecutterplugin_name.tex",
-        u"napari-\\{\\{cookiecutter.plugin\\_name\\}\\} Documentation",
-        u"\\{\\{cookiecutter.full\\_name\\}\\}",
+        "napari-\\{\\{cookiecutter.plugin\\_name\\}\\} Documentation",
+        "\\{\\{cookiecutter.full\\_name\\}\\}",
         "manual",
     ),
 ]
@@ -213,7 +213,7 @@ man_pages = [
     (
         master_doc,
         "napari-cookiecutterplugin_name",
-        u"napari-imsmicrolink Documentation",
+        "napari-imsmicrolink Documentation",
         [author],
         1,
     )
@@ -232,7 +232,7 @@ texinfo_documents = [
     (
         master_doc,
         "napari-cookiecutterplugin_name",
-        u"napari-imsmicrolink Documentation",
+        "napari-imsmicrolink Documentation",
         author,
         "napari-cookiecutterplugin_name",
         "One line description of project.",
