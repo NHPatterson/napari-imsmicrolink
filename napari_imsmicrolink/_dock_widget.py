@@ -7,6 +7,7 @@ import numpy as np
 import dask.array as da
 import SimpleITK as sitk
 
+
 from napari_plugin_engine import napari_hook_implementation
 import napari
 from napari.qt.threading import thread_worker
@@ -64,7 +65,6 @@ class IMSMicroLink(QWidget):
         """
         super().__init__()
         self.viewer = napari_viewer
-
         # data classes
         self.ims_pixel_map: Optional[PixelMapIMS] = None
         self.microscopy_image: Optional[MicroRegImage] = None

@@ -221,7 +221,7 @@ class OmeTiffWriter:
 
                         yx_shape = rgb_interleaved.shape[:2]
                         ds = 1
-                        while np.min(yx_shape) // 2 ** ds >= 512:
+                        while np.min(yx_shape) // 2**ds >= 512:
                             ds += 1
 
                         # write rgb to ome.tiff file

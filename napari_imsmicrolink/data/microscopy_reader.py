@@ -1,15 +1,13 @@
 import os
 
-os.environ[
-    "BIOFORMATS_MEMORY"
-] = "8g"  # need to source before bioformats is initialized
-from typing import Union, List, Dict
-from pathlib import Path
-import numpy as np
-import dask.array as da
-from aicsimageio.readers.bioformats_reader import BioFile
-from ome_types import OME
-from napari_imsmicrolink.utils.image import guess_rgb
+os.environ["BIOFORMATS_MEMORY"] = "8g"  # noqa: E402
+from typing import Union, List, Dict  # noqa: E402
+from pathlib import Path  # noqa: E402
+import numpy as np  # noqa: E402
+import dask.array as da  # noqa: E402
+from aicsimageio.readers.bioformats_reader import BioFile  # noqa: E402
+from ome_types import OME  # noqa: E402
+from napari_imsmicrolink.utils.image import guess_rgb  # noqa: E402
 
 PathLike = Union[str, Path]
 

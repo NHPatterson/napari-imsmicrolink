@@ -1,5 +1,5 @@
 from ome_types.model import Image, Pixels, Channel, OME
-from ome_types.model.simple_types import UnitsLength, Color
+from ome_types.model.simple_types import UnitsLength
 
 pixel_metadata = {
     "size_c": 1000,
