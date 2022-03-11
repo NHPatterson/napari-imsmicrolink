@@ -346,11 +346,12 @@ class PixelMapIMS:
         pix_map = np.zeros_like(pix_map_in)
         pix_map[pix_map_in == roi] = 255
         pix_map[pix_map_in != roi] = 0
+        pix_map = pix_map.astype(np.uint8)
 
         while cv2.connectedComponents(pix_map)[0] > 2:
             pix_map = cv2.dilate(pix_map, np.ones((3, 3), np.uint8))
 
-        return self.approx_polygon_contour(pix_map, 0.0001)
+        return self.approx_polygon_contour(pix_map, 0.001)
 
     def _make_shape_map(
         self, map_type: str = "minimized"
@@ -361,15 +362,9 @@ class PixelMapIMS:
 
         region_names, region_indices = np.unique(self.regions, return_inverse=True)
 
-        pix_map_arr = np.zeros((y_extent, x_extent), dtype=np.uint8)
+        pix_map_arr = np.zeros((y_extent, x_extent), dtype=np.int32)
 
         pix_map_arr[y_coords, x_coords] = region_indices + 1
-
-        for region_name, roi in zip(region_names, np.unique(region_indices)):
-            try:
-                (region_name, self._approximate_roi(pix_map_arr, roi + 1))
-            except:  # noqa: E722
-                break
 
         ims_rois = [
             (region_name, self._approximate_roi(pix_map_arr, roi + 1))
