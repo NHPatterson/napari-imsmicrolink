@@ -301,6 +301,12 @@ class IMSMicroLink(QWidget):
             self._get_source_pts
         )
 
+    def _get_point_props(self, pt_data) -> dict:
+        n_pts = pt_data.shape[0]
+        pt_names = [str(i + 1) for i in range(n_pts)]
+        pt_props = {"name": pt_names}
+        return pt_props
+
     def _get_target_pts(self, _) -> None:
         self._tform_c.tform_ctl.pt_table.add_point_data(
             self.viewer.layers["IMS Fiducials"].data,
@@ -324,6 +330,16 @@ class IMSMicroLink(QWidget):
             else:
                 self._tform_c.tform_ctl.tform_error.setStyleSheet("color: red")
 
+        pt_props = self._get_point_props(self.viewer.layers["IMS Fiducials"].data)
+        pt_text = {
+            "text": "{name}",
+            "color": "white",
+            "anchor": "center",
+            "size": 12,
+        }
+        self.viewer.layers["IMS Fiducials"].properties = pt_props
+        self.viewer.layers["IMS Fiducials"].text = pt_text
+
     def _get_source_pts(self, _) -> None:
 
         self._tform_c.tform_ctl.pt_table.add_point_data(
@@ -343,6 +359,18 @@ class IMSMicroLink(QWidget):
             self._tform_c.tform_ctl.tform_error.setText(
                 f"{np.round(self.image_transformer.point_reg_error, 3)}"
             )
+
+        pt_props = self._get_point_props(
+            self.viewer.layers["Microscopy Fiducials"].data
+        )
+        pt_text = {
+            "text": "{name}",
+            "color": "red",
+            "anchor": "center",
+            "size": 12,
+        }
+        self.viewer.layers["Microscopy Fiducials"].properties = pt_props
+        self.viewer.layers["Microscopy Fiducials"].text = pt_text
 
     @thread_worker
     def _process_micro_data(self, file_path: str) -> Tuple[MicroRegImage, np.ndarray]:
@@ -606,12 +634,15 @@ class IMSMicroLink(QWidget):
                 self.viewer.layers[
                     "IMS Pixel Map"
                 ].affine = self.image_transformer.affine_np_mat_yx_um
+                self.viewer.layers["IMS Fiducials"].affine = self.image_transformer.affine_np_mat_yx_um
 
             elif target_tform_modality == "IMS":
                 for im in self.micro_image_names:
                     self.viewer.layers[
                         im
                     ].affine = self.image_transformer.inverse_affine_np_mat_yx_um
+
+                self.viewer.layers["Microscopy Fiducials"].affine = self.image_transformer.inverse_affine_np_mat_yx_um
 
                 self.last_transform = deepcopy(
                     self.image_transformer.inverse_affine_np_mat_yx_um
@@ -915,10 +946,21 @@ class IMSMicroLink(QWidget):
         return
 
     def reset_transform(self) -> None:
-        for micro_im in self.micro_image_names:
-            self.viewer.layers[micro_im].affine = np.eye(3)
-        self.viewer.layers["Microscopy Fiducials"].affine = np.eye(3)
-        self._micro_rot = 0
+        target_tform_modality = (
+            self._tform_c.tform_ctl.target_mode_combo.currentText()
+        )
+        print(target_tform_modality)
+        if target_tform_modality == "IMS":
+            print("here")
+            for micro_im in self.micro_image_names:
+                self.viewer.layers[micro_im].affine = np.eye(3)
+            self.viewer.layers["Microscopy Fiducials"].affine = np.eye(3)
+            self._micro_rot = 0
+        else:
+            self.viewer.layers["IMS Pixel Map"].affine = np.eye(3)
+            self.viewer.layers["IMS Fiducials"].affine = np.eye(3)
+
+        self.last_transform = np.eye(3)
 
     def _ims_res_timing(self) -> None:
         """Wait until there are no changes for 0.5 second before making changes."""
