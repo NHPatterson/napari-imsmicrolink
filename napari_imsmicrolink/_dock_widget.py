@@ -301,6 +301,12 @@ class IMSMicroLink(QWidget):
             self._get_source_pts
         )
 
+    def _get_point_props(self, pt_data) -> dict:
+        n_pts = pt_data.shape[0]
+        pt_names = [str(i + 1) for i in range(n_pts)]
+        pt_props = {"name": pt_names}
+        return pt_props
+
     def _get_target_pts(self, _) -> None:
         self._tform_c.tform_ctl.pt_table.add_point_data(
             self.viewer.layers["IMS Fiducials"].data,
@@ -324,6 +330,16 @@ class IMSMicroLink(QWidget):
             else:
                 self._tform_c.tform_ctl.tform_error.setStyleSheet("color: red")
 
+        pt_props = self._get_point_props(self.viewer.layers["IMS Fiducials"].data)
+        pt_text = {
+            "text": "{name}",
+            "color": "white",
+            "anchor": "center",
+            "size": 12,
+        }
+        self.viewer.layers["IMS Fiducials"].properties = pt_props
+        self.viewer.layers["IMS Fiducials"].text = pt_text
+
     def _get_source_pts(self, _) -> None:
 
         self._tform_c.tform_ctl.pt_table.add_point_data(
@@ -343,6 +359,18 @@ class IMSMicroLink(QWidget):
             self._tform_c.tform_ctl.tform_error.setText(
                 f"{np.round(self.image_transformer.point_reg_error, 3)}"
             )
+
+        pt_props = self._get_point_props(
+            self.viewer.layers["Microscopy Fiducials"].data
+        )
+        pt_text = {
+            "text": "{name}",
+            "color": "red",
+            "anchor": "center",
+            "size": 12,
+        }
+        self.viewer.layers["Microscopy Fiducials"].properties = pt_props
+        self.viewer.layers["Microscopy Fiducials"].text = pt_text
 
     @thread_worker
     def _process_micro_data(self, file_path: str) -> Tuple[MicroRegImage, np.ndarray]:
