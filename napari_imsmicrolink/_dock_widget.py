@@ -634,12 +634,15 @@ class IMSMicroLink(QWidget):
                 self.viewer.layers[
                     "IMS Pixel Map"
                 ].affine = self.image_transformer.affine_np_mat_yx_um
+                self.viewer.layers["IMS Fiducials"].affine = self.image_transformer.affine_np_mat_yx_um
 
             elif target_tform_modality == "IMS":
                 for im in self.micro_image_names:
                     self.viewer.layers[
                         im
                     ].affine = self.image_transformer.inverse_affine_np_mat_yx_um
+
+                self.viewer.layers["Microscopy Fiducials"].affine = self.image_transformer.inverse_affine_np_mat_yx_um
 
                 self.last_transform = deepcopy(
                     self.image_transformer.inverse_affine_np_mat_yx_um
@@ -943,10 +946,21 @@ class IMSMicroLink(QWidget):
         return
 
     def reset_transform(self) -> None:
-        for micro_im in self.micro_image_names:
-            self.viewer.layers[micro_im].affine = np.eye(3)
-        self.viewer.layers["Microscopy Fiducials"].affine = np.eye(3)
-        self._micro_rot = 0
+        target_tform_modality = (
+            self._tform_c.tform_ctl.target_mode_combo.currentText()
+        )
+        print(target_tform_modality)
+        if target_tform_modality == "IMS":
+            print("here")
+            for micro_im in self.micro_image_names:
+                self.viewer.layers[micro_im].affine = np.eye(3)
+            self.viewer.layers["Microscopy Fiducials"].affine = np.eye(3)
+            self._micro_rot = 0
+        else:
+            self.viewer.layers["IMS Pixel Map"].affine = np.eye(3)
+            self.viewer.layers["IMS Fiducials"].affine = np.eye(3)
+
+        self.last_transform = np.eye(3)
 
     def _ims_res_timing(self) -> None:
         """Wait until there are no changes for 0.5 second before making changes."""
