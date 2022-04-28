@@ -634,7 +634,9 @@ class IMSMicroLink(QWidget):
                 self.viewer.layers[
                     "IMS Pixel Map"
                 ].affine = self.image_transformer.affine_np_mat_yx_um
-                self.viewer.layers["IMS Fiducials"].affine = self.image_transformer.affine_np_mat_yx_um
+                self.viewer.layers[
+                    "IMS Fiducials"
+                ].affine = self.image_transformer.affine_np_mat_yx_um
 
             elif target_tform_modality == "IMS":
                 for im in self.micro_image_names:
@@ -642,7 +644,9 @@ class IMSMicroLink(QWidget):
                         im
                     ].affine = self.image_transformer.inverse_affine_np_mat_yx_um
 
-                self.viewer.layers["Microscopy Fiducials"].affine = self.image_transformer.inverse_affine_np_mat_yx_um
+                self.viewer.layers[
+                    "Microscopy Fiducials"
+                ].affine = self.image_transformer.inverse_affine_np_mat_yx_um
 
                 self.last_transform = deepcopy(
                     self.image_transformer.inverse_affine_np_mat_yx_um
@@ -895,6 +899,7 @@ class IMSMicroLink(QWidget):
                 self.viewer.reset_view()
                 self._update_output_spacing(micro_res)
                 self._update_output_size()
+                self.microscopy_image.base_layer_pixel_res = micro_res
             else:
                 return None
 
@@ -946,12 +951,8 @@ class IMSMicroLink(QWidget):
         return
 
     def reset_transform(self) -> None:
-        target_tform_modality = (
-            self._tform_c.tform_ctl.target_mode_combo.currentText()
-        )
-        print(target_tform_modality)
+        target_tform_modality = self._tform_c.tform_ctl.target_mode_combo.currentText()
         if target_tform_modality == "IMS":
-            print("here")
             for micro_im in self.micro_image_names:
                 self.viewer.layers[micro_im].affine = np.eye(3)
             self.viewer.layers["Microscopy Fiducials"].affine = np.eye(3)
