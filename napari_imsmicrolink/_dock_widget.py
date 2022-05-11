@@ -790,7 +790,7 @@ class IMSMicroLink(QWidget):
 
     def _delete_ims_roi(self):
         roi_name = self._data.ims_d.delete_box.currentText()
-        self.ims_pixel_map.delete_roi(roi_name, remove_padding=False)
+        self.ims_pixel_map.delete_roi(roi_name, remove_padding=True)
         self.viewer.layers["IMS Pixel Map"].data = self.ims_pixel_map.pixelmap_padded
         shape_names = np.unique(self.ims_pixel_map.regions).astype(str)
         self._data.ims_d.delete_box.clear()
