@@ -615,6 +615,7 @@ class IMSMicroLink(QWidget):
         self._ims_c.ims_ctl.pad_bottom.setText("")
 
         self._update_output_size()
+        self.run_transformation()
 
         # self.viewer.reset_view()
 
