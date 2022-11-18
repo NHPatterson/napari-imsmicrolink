@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 
 import numpy as np
+import pandas as pd
 import dask.array as da
 import SimpleITK as sitk
 
@@ -615,6 +616,7 @@ class IMSMicroLink(QWidget):
         self._ims_c.ims_ctl.pad_bottom.setText("")
 
         self._update_output_size()
+        self.run_transformation()
 
         # self.viewer.reset_view()
 
@@ -690,7 +692,9 @@ class IMSMicroLink(QWidget):
 
         return project_data
 
-    def _generate_pmap_coords_and_meta(self, project_name: str) -> None:
+    def _generate_pmap_coords_and_meta(
+        self, project_name: str
+    ) -> Tuple[dict, pd.DataFrame]:
 
         padding_ims_metadata = self.ims_pixel_map.prepare_pmap_metadata()
 
@@ -800,7 +804,11 @@ class IMSMicroLink(QWidget):
 
     @thread_worker
     def _write_data(
-        self, project_name: str, output_dir: str, output_filetype: str
+        self,
+        project_name: str,
+        output_dir: str,
+        output_filetype: str,
+        split_by_file_roi: bool = False,
     ) -> None:
 
         project_metadata, pmap_coord_data = self._generate_pmap_coords_and_meta(
@@ -828,19 +836,35 @@ class IMSMicroLink(QWidget):
             json.dump(project_metadata, json_out, indent=1)
 
         if output_filetype == ".h5":
-            coords_out_fp = Path(output_dir) / f"{project_name}-IMSML-coords.h5"
-            # pmap_coord_data.to_hdf(
-            #     coords_out_fp, key="imsml-coords", complevel=1, index=False
-            # )
-            pmap_coords_to_h5(pmap_coord_data, coords_out_fp)
+            if split_by_file_roi:
+                for (group, roi_idx), coord_data in pmap_coord_data.groupby(
+                    ["data_name", "regions"]
+                ):
+                    coords_out_fp = (
+                        Path(output_dir)
+                        / f"{project_name}-{group}-roi#{roi_idx}-IMSML-coords.h5"
+                    )
+                    pmap_coords_to_h5(coord_data, coords_out_fp)
+            else:
+                coords_out_fp = Path(output_dir) / f"{project_name}-IMSML-coords.h5"
+                pmap_coords_to_h5(pmap_coord_data, coords_out_fp)
         elif output_filetype == ".csv":
-            coords_out_fp = Path(output_dir) / f"{project_name}-IMSML-coords.csv"
-            pmap_coord_data.to_csv(coords_out_fp, mode="w", index=False)
+            for (group, roi_idx), coord_data in pmap_coord_data.groupby(
+                ["data_name", "regions"]
+            ):
+                coords_out_fp = (
+                    Path(output_dir)
+                    / f"{project_name}-{group}-roi#{roi_idx}-IMSML-coords.csv"
+                )
+                coord_data.to_csv(coords_out_fp, mode="w", index=False)
+            else:
+                coords_out_fp = Path(output_dir) / f"{project_name}-IMSML-coords.csv"
+                pmap_coord_data.to_csv(coords_out_fp, mode="w", index=False)
 
         if target_tform_modality == "IMS":
             ometiff_writer = OmeTiffWriter(
                 self.microscopy_image,
-                project_name,
+                f"{project_name}-postIMS-registered",
                 self.image_transformer.affine_transform,
                 self.image_transformer.output_size,
                 self.image_transformer.output_spacing,
@@ -850,7 +874,6 @@ class IMSMicroLink(QWidget):
             ometiff_writer.write_image()
 
     def save_data(self) -> None:
-
         project_data = self._get_save_info()
 
         if project_data:
@@ -860,6 +883,7 @@ class IMSMicroLink(QWidget):
                 project_data.project_name,
                 project_data.output_dir,
                 project_data.output_filetype,
+                split_by_file_roi=project_data.split_by_roi,
             )
             save_worker.start()
             save_worker.finished.connect(

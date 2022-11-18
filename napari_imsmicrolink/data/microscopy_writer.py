@@ -36,7 +36,7 @@ class OmeTiffWriter:
         self,
         microscopy_image: Union[MicroRegImage, CziRegImage],
         image_name: str,
-        image_transform: sitk.AffineTransform,
+        image_transform: sitk.Transform,
         output_size: Tuple[int, int],
         output_spacing: Tuple[float, float],
         tile_size: int = 512,
@@ -64,7 +64,7 @@ class OmeTiffWriter:
     def _transform_plane(
         self,
         image: sitk.Image,
-        transform: sitk.AffineTransform,
+        transform: sitk.Transform,
         output_size: Tuple[int, int],
         output_spacing: Tuple[float, float],
     ) -> sitk.Image:
@@ -72,6 +72,7 @@ class OmeTiffWriter:
         resampler.SetTransform(transform)
         resampler.SetOutputSpacing(output_spacing)
         resampler.SetSize(output_size)
+        resampler.SetInterpolator(sitk.sitkNearestNeighbor)
         image = resampler.Execute(image)
         return image
 
@@ -199,6 +200,7 @@ class OmeTiffWriter:
                         tif.write(image, **options, subfiletype=1)
 
                 elif channel_idx < self.microscopy_image.n_ch:
+                    print(f"starting transform {channel_idx}")
                     rgb_temp_store = zarr.storage.TempStore()
                     root = zarr.open_group(rgb_temp_store, mode="a")
                     chunking = (512, 512)
@@ -221,7 +223,7 @@ class OmeTiffWriter:
 
                         yx_shape = rgb_interleaved.shape[:2]
                         ds = 1
-                        while np.min(yx_shape) // 2**ds >= 512:
+                        while np.min(yx_shape) // 2 ** ds >= 512:
                             ds += 1
 
                         # write rgb to ome.tiff file
