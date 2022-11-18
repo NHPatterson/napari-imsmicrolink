@@ -43,7 +43,14 @@ class TiffFileRegImage:
         self.base_layer_idx = 0
 
     def get_dask_pyr(self):
-        return tifffile_to_dask(self.image_filepath, self.largest_series)
+        d_pyr = tifffile_to_dask(self.image_filepath, self.largest_series)
+        if self.is_rgb and guess_rgb(d_pyr[0].shape) is True:
+            d_pyr[0] = d_pyr[0].rechunk((2048, 2048, 1))
+        elif len(d_pyr[0].shape) > 2:
+            d_pyr[0] = d_pyr[0].rechunk((1, 2048, 2048))
+        else:
+            d_pyr[0] = d_pyr[0].rechunk((2048, 2048))
+        return d_pyr
 
     def _get_im_res(self):
         if Path(self.image_filepath).suffix.lower() in [".scn", ".ndpi"]:

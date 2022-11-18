@@ -8,6 +8,7 @@ from qtpy.QtWidgets import (
     QErrorMessage,
     QFileDialog,
     QComboBox,
+    QCheckBox,
 )
 from qtpy.QtCore import Qt
 
@@ -16,6 +17,7 @@ class SaveData(NamedTuple):
     project_name: str
     output_dir: str
     output_filetype: str
+    split_by_roi: bool
 
 
 class SavePopUp(QDialog):
@@ -44,12 +46,19 @@ class SavePopUp(QDialog):
         self.output_filetype.addItem(".h5")
         self.output_filetype.addItem(".csv")
 
+        self.split_by_roi_lbl = QLabel(self)
+        self.split_by_roi_lbl.setText("Split by roi?")
+
+        self.split_by_roi = QCheckBox(self)
+        self.split_by_roi.setChecked(False)
+
         self.cancel_btn = QPushButton("Cancel save")
         self.save_btn = QPushButton("Save data")
 
         self.layout().addRow(self.set_output_dir_btn, self.output_dir_lbl)
         self.layout().addRow(self.project_lbl, self.project_line)
         self.layout().addRow(self.output_ft_lbl, self.output_filetype)
+        self.layout().addRow(self.split_by_roi_lbl, self.split_by_roi)
         self.layout().addRow(self.cancel_btn, self.save_btn)
 
         self.set_output_dir_btn.clicked.connect(self.get_output_dir)
@@ -68,6 +77,7 @@ class SavePopUp(QDialog):
             output_dir=self.output_dir,
             project_name=self.project_name,
             output_filetype=self.output_filetype.currentText(),
+            split_by_roi=self.split_by_roi.isChecked(),
         )
 
     def _save_config(self):

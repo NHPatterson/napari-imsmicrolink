@@ -7,6 +7,7 @@ import pandas as pd
 import cv2
 from lxml import etree
 import h5py
+from tifffile import imread
 from napari_imsmicrolink.utils.points import apply_rotmat_points
 from napari_imsmicrolink.utils.ims_coords import parse_tsf_coordinates
 
@@ -33,8 +34,9 @@ class PixelMapIMS:
 
         self.data: List[Union[str, NDArray]] = data_imported
         self.ims_res: int = 1
-
+        self._is_tiff: bool = False
         self.regions: Optional[NDArray] = None
+        self.data_name: Optional[NDArray] = None
 
         self.x_coords_orig: Optional[NDArray] = None
         self.y_coords_orig: Optional[NDArray] = None
@@ -68,6 +70,8 @@ class PixelMapIMS:
         self.pixelmap_padded: NDArray = self._pixelmap_minimized
 
         self._shape_map_minimized = self._make_shape_map(map_type="minimized")
+        if self._is_tiff:
+            self.pixelmap_padded: NDArray = imread(data)
 
     def _check_bruker_sl(self, data_fp: str) -> bool:
         with open(data_fp) as f:
@@ -113,13 +117,22 @@ class PixelMapIMS:
 
     def _read_h5(self, data_fp):
         with h5py.File(data_fp) as f:
-            regions, x, y = (
-                np.asarray(f["region"]),
-                np.asarray(f["x"]),
-                np.asarray(f["y"]),
-            )
+            if "region" in f.keys():
+                regions, x, y = (
+                    np.asarray(f["region"]),
+                    np.asarray(f["x"]),
+                    np.asarray(f["y"]),
+                )
+                data_round_trip = False
+            else:
+                regions, x, y = (
+                    np.asarray(f["regions"]),
+                    np.asarray(f["xy_padded"])[:, 0],
+                    np.asarray(f["xy_padded"])[:, 1],
+                )
+                data_round_trip = True
 
-        return regions, x, y
+        return regions, x, y, data_round_trip
 
     def _read_imzml_rxy(
         self, data_fp: str, infer_regions: bool = True
@@ -199,11 +212,13 @@ class PixelMapIMS:
     def read_pixel_data(
         self, data: Union[str, np.ndarray], infer_regions: bool
     ) -> None:
+        print(data)
         data_round_trip = False
         if isinstance(data, np.ndarray):
             regions = data[:, 0]
             x = data[:, 1]
             y = data[:, 2]
+            data_name = "numpy"
 
         elif Path(data).suffix.lower() == ".txt":
             if self._check_bruker_sl(data) is False:
@@ -211,19 +226,28 @@ class PixelMapIMS:
                     "{} doesn't appear to be a bruker flexImaging spotlist".format(data)
                 )
             regions, x, y = self._read_bruker_sl_rxy(data)
+            data_name = Path(data).stem
 
         elif Path(data).suffix.lower() == ".sqlite":
 
             regions, x, y = self._read_sqlite_rxy(data)
+            data_name = Path(data).stem
 
         elif Path(data).suffix.lower() == ".imzml":
             regions, x, y = self._read_imzml_rxy(str(data), infer_regions=infer_regions)
+            data_name = Path(data).stem
 
         elif Path(data).suffix.lower() == ".h5":
-            regions, x, y = self._read_h5(str(data))
+            regions, x, y, data_round_trip = self._read_h5(str(data))
+            data_name = Path(data).stem
 
         elif Path(data).suffix.lower() == ".tsf":
             regions, x, y = parse_tsf_coordinates(str(data))
+            data_name = Path(data).parent.stem
+
+        elif Path(data).suffix.lower() in [".tiff", ".tif"]:
+            regions, x, y = self.parse_tiff_coords(str(data))
+            data_name = Path(data).stem
 
         elif Path(data).suffix.lower() == ".csv":
             (
@@ -235,21 +259,25 @@ class PixelMapIMS:
                 self.x_coords_pad,
                 self.y_coords_pad,
             ) = self._read_ims_microlink_csv(data)
-
+            data_name = Path(data).stem
             data_round_trip = True
 
-        if data_round_trip is False:
+        if not data_round_trip:
 
             # assume there is no data if regions is None
             if self.regions is None:
                 self.regions = regions
                 self.x_coords_orig = x
                 self.y_coords_orig = y
+                self.data_name = np.repeat(data_name, len(self.regions))
             else:
                 offset_roi_no = int(np.max(self.regions) + 1)
                 regions = regions + offset_roi_no
+                data_names = np.repeat(data_name, len(regions))
 
                 self.regions = np.concatenate([self.regions, regions])
+                self.data_name = np.concatenate([self.data_name, data_names])
+
                 self.x_coords_orig = np.concatenate([self.x_coords_orig, x])
                 self.y_coords_orig = np.concatenate([self.y_coords_orig, y])
 
@@ -258,6 +286,24 @@ class PixelMapIMS:
 
             self.x_coords_pad = self.x_coords_min
             self.y_coords_pad = self.y_coords_min
+        else:
+            self.x_coords_min = x
+            self.y_coords_min = y
+
+            self.x_coords_pad = x
+            self.y_coords_pad = y
+
+            self.regions = regions
+            self.x_coords_orig = x
+            self.y_coords_orig = y
+            self.data_name = np.repeat(data_name, len(self.regions))
+
+    def parse_tiff_coords(self, data: str):
+        im = imread(data)
+        xy = np.array([(x, y) for x in range(im.shape[1]) for y in range(im.shape[0])])
+        regions = np.zeros((xy.shape[0],), dtype=np.int32)
+        self._is_tiff = True
+        return regions, xy[:, 0], xy[:, 1]
 
     def add_pixel_data(
         self,
@@ -408,6 +454,7 @@ class PixelMapIMS:
         roi_idx = np.invert(non_roi_idx)
 
         self.regions = self.regions[non_roi_idx]  # type:ignore
+        self.data_name = self.data_name[non_roi_idx]  # type:ignore
         self.x_coords_orig = self.x_coords_orig[non_roi_idx]  # type:ignore
         self.y_coords_orig = self.y_coords_orig[non_roi_idx]  # type:ignore
         self.x_coords_min = self.x_coords_orig - np.min(self.x_coords_orig)
@@ -488,6 +535,7 @@ class PixelMapIMS:
     def prepare_pmap_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
+                "data_name": self.data_name,
                 "regions": self.regions,
                 "x_original": self.x_coords_orig,
                 "y_original": self.y_coords_orig,
