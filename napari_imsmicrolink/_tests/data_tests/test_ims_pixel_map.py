@@ -63,6 +63,7 @@ def test_PixelMapIMS_prepare_meta():
     meta_dict = pmap.prepare_pmap_metadata()
     pmap_df = pmap.prepare_pmap_dataframe()
     df_cols = [
+        "data_name",
         "regions",
         "x_original",
         "y_original",
