@@ -37,7 +37,7 @@ from napari_imsmicrolink.utils.file import open_file_dialog, _generate_ims_fp_in
 from napari_imsmicrolink.utils.color import COLOR_HEXES
 from napari_imsmicrolink.utils.image import centered_transform, grayscale
 from napari_imsmicrolink.utils.coords import pmap_coords_to_h5
-
+from napari_imsmicrolink.utils.json import NpEncoder
 
 class IMSMicroLink(QWidget):
     def __init__(self, napari_viewer: napari.Viewer):
@@ -833,7 +833,7 @@ class IMSMicroLink(QWidget):
         pmeta_out_fp = Path(output_dir) / f"{project_name}-IMSML-meta.json"
 
         with open(pmeta_out_fp, "w") as json_out:
-            json.dump(project_metadata, json_out, indent=1)
+            json.dump(project_metadata, json_out, indent=1, cls=NpEncoder)
 
         if output_filetype == ".h5":
             if split_by_file_roi:
