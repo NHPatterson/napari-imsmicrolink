@@ -14,17 +14,6 @@ on:
       - '**'
   workflow_dispatch:
 
-name: Test cookiecutter
-
-on:
-  pull_request:
-    branches:
-      - main
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
 jobs:
   test:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
