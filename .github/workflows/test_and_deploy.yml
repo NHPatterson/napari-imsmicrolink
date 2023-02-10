@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cookies tox
+          pip install pytest pytest-cookies tox napari-plugin-engine
           pip install .
       - name: Test
         uses: GabrielBB/xvfb-action@v1
